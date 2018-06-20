@@ -3,6 +3,8 @@ package fluent
 import (
 	"context"
 	"github.com/streadway/amqp"
+	"log"
+	"os"
 )
 
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
@@ -20,6 +22,7 @@ type SinkConfig struct {
 	handler      SinkHandlerFunc
 	queueName    string
 	bindings     []*Exchange
+	middleware   []ReceiverHandler
 	broker       *Server
 	autoAck      bool
 	deadQueue    string
@@ -40,6 +43,19 @@ func newSink(queue string, broker *Server) *SinkConfig {
 func (snk *SinkConfig) ManualAck() *SinkConfig {
 	snk.autoAck = false
 	return snk
+}
+
+func (snk *SinkConfig) Use(handler ReceiverHandler) *SinkConfig {
+	snk.middleware = append(snk.middleware, handler)
+	return snk
+}
+
+func (snk *SinkConfig) Validate(certFile string) *SinkConfig {
+	mv, err := NewCertValidatorFromFile(certFile, DefaultSignatureHeader, log.New(os.Stderr, "[validator] ", log.LstdFlags))
+	if err != nil {
+		panic(err)
+	}
+	return snk.Use(mv)
 }
 
 func (snk *SinkConfig) deadLetterQueue(name string) *SinkConfig {
@@ -202,7 +218,21 @@ LOOP:
 				continue
 			}
 			msg.RoutingKey = restoreRoutingKey(&msg)
-			s.config.handler(ctx, msg)
+
+			filtered := false
+			for _, handler := range s.config.middleware {
+				if !handler.Handle(&msg) {
+					filtered = true
+					err = msg.Nack(false, false)
+					if err != nil {
+						return err
+					}
+					break
+				}
+			}
+			if !filtered {
+				s.config.handler(ctx, msg)
+			}
 		case <-ctx.Done():
 			return ctx.Err()
 		}

@@ -8,12 +8,14 @@ import (
 	"strconv"
 )
 
-type WriterConfig struct {
-	exchange string
-	kind     string
+const DefaultSignatureHeader = "X-Signature"
 
-	topic  string
-	broker *Server
+type WriterConfig struct {
+	exchange   string
+	kind       string
+	middleware []SenderHandler
+	topic      string
+	broker     *Server
 }
 
 func newWriter(broker *Server) *WriterConfig {
@@ -24,6 +26,20 @@ func (wc *WriterConfig) withExchange(name, kind string) *WriterConfig {
 	wc.exchange = name
 	wc.kind = kind
 	return wc
+}
+
+func (wc *WriterConfig) Use(handler SenderHandler) *WriterConfig {
+	wc.middleware = append(wc.middleware, handler)
+	return wc
+}
+
+// Sign body and add signature to DefaultSignatureHeader header. Panic if private key couldn't be read
+func (wc *WriterConfig) Sign(privateFile string) *WriterConfig {
+	mw, err := NewSignerFromFile(privateFile, DefaultSignatureHeader)
+	if err != nil {
+		panic(err)
+	}
+	return wc.Use(mw)
 }
 
 func (wc *WriterConfig) DefaultTopic(name string) *WriterConfig  { return wc.withExchange(name, "topic") }
@@ -120,6 +136,11 @@ type Message struct {
 	writer   *Writer
 }
 
+func (msg *Message) ID(id string) *Message {
+	msg.msg.MessageId = id
+	return msg
+}
+
 func (msg *Message) Exchange(name string) *Message {
 	msg.exchange = name
 	return msg
@@ -164,18 +185,37 @@ func (msg *Message) TTL(tm time.Duration) *Message {
 }
 
 func (ms *Message) Send() {
+	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange}
+	if !ms.processMessage(&m.msg) {
+		return
+	}
+
 	select {
-	case ms.writer.pub.stream <- msg{msg: ms.msg, key: ms.key, exchange: ms.exchange}:
+	case ms.writer.pub.stream <- m:
 	case <-ms.writer.ctx.Done():
 	}
 }
 
 func (ms *Message) TrySend() error {
 	t := make(chan error, 1)
+	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange, try: t}
+	if !ms.processMessage(&m.msg) {
+		return nil
+	}
 	select {
-	case ms.writer.pub.stream <- msg{msg: ms.msg, key: ms.key, exchange: ms.exchange, try: t}:
+	case ms.writer.pub.stream <- m:
 		return <-t
 	case <-ms.writer.ctx.Done():
 		return ms.writer.ctx.Err()
 	}
+}
+
+func (ms *Message) processMessage(msg *amqp.Publishing) (bool) {
+	for _, handle := range ms.writer.pub.config.middleware {
+		ok := handle.Handle(msg)
+		if !ok {
+			return false
+		}
+	}
+	return true
 }
