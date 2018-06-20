@@ -10,6 +10,10 @@ import (
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
 type TransactionHandlerFunc func(ctx context.Context, msg amqp.Delivery) (error)
 
+type TransactionHandler interface {
+	Handle(ctx context.Context, msg amqp.Delivery) (error)
+}
+
 type Exchange struct {
 	name    string
 	kind    string
@@ -149,6 +153,8 @@ func (exc *Exchange) TransactFunc(fn TransactionHandlerFunc) *Server {
 		}
 	})
 }
+
+func (exc *Exchange) Transact(fn TransactionHandler) *Server { return exc.TransactFunc(fn.Handle) }
 
 func (exc *Exchange) Attr(name string, value interface{}) *Exchange {
 	if exc.attrs == nil {
