@@ -93,7 +93,14 @@ type messageSigner struct {
 }
 
 func (ms *messageSigner) Handle(msg *amqp.Publishing) bool {
-	signature, err := sign(msg.Body, ms.key, signerAlgo)
+	idBytes := []byte(msg.MessageId)
+	var data = make([]byte, len(idBytes)+len(msg.Body))
+	// by adding message-id into signature we prevent re-use old message by hackers. Of course only if target system
+	// can correct handle duplicated messages (drop them)
+	copy(data, idBytes)
+	copy(data[len(idBytes):], msg.Body)
+
+	signature, err := sign(data, ms.key, signerAlgo)
 	if err != nil {
 		panic(err) // something really wrong
 	}
@@ -135,7 +142,13 @@ func (mv *messageValidator) Handle(msg *amqp.Delivery) (bool) {
 		mv.logger.Println("message", msg.MessageId, "signature header is not a bytes")
 		return false
 	}
-	err := mv.cert.CheckSignature(hashAlgo, msg.Body, signature)
+
+	idBytes := []byte(msg.MessageId)
+	var data = make([]byte, len(idBytes)+len(msg.Body))
+	copy(data, idBytes)
+	copy(data[len(idBytes):], msg.Body)
+
+	err := mv.cert.CheckSignature(hashAlgo, data, signature)
 	if err != nil {
 		mv.logger.Println("message", msg.MessageId, "signature verification failed:", err)
 		return false
