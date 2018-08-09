@@ -146,6 +146,19 @@ func (msg *Message) Exchange(name string) *Message {
 	return msg
 }
 
+func (msg *Message) Header(name string, data interface{}) *Message {
+	if msg.msg.Headers == nil {
+		msg.msg.Headers = make(amqp.Table)
+	}
+	msg.msg.Headers[name] = data
+	return msg
+}
+
+func (msg *Message) Type(contentType string) *Message {
+	msg.msg.ContentType = contentType
+	return msg
+}
+
 func (msg *Message) Key(name string) *Message {
 	msg.key = name
 	return msg

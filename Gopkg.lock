@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/google/uuid"
+  packages = ["."]
+  revision = "064e2069ce9c359c118179501254f67d7d37ba24"
+  version = "0.2"
+
+[[projects]]
+  name = "github.com/jessevdk/go-flags"
+  packages = ["."]
+  revision = "c6ca198ec95c841fdb89fc0de7496fed11ab854e"
+  version = "v1.4.0"
+
+[[projects]]
   name = "github.com/pkg/errors"
   packages = ["."]
   revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
@@ -11,11 +23,11 @@
   branch = "master"
   name = "github.com/streadway/amqp"
   packages = ["."]
-  revision = "e5adc2ada8b8efff032bf61173a233d143e9318e"
+  revision = "70e15c650864f4fc47f5d3c82ea117285480895d"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a1450de042591fea0a0055d76b0276138c513b51a178dee629ab9d52f80056f0"
+  inputs-digest = "be61ec6b521a91657af766a604ea988697d808ec6b8e2241a94a593e52142f5d"
   solver-name = "gps-cdcl"
   solver-version = 1
