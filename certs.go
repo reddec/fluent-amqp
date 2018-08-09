@@ -111,11 +111,14 @@ func (ms *messageSigner) Handle(msg *amqp.Publishing) bool {
 	return true
 }
 
+// Create new PKS#1 1.5 SHA512 signer handler
 func NewSigner(privateKey []byte, header string) (SenderHandler, error) {
 	key, err := loadPrivateKey(privateKey)
 	return &messageSigner{header: header, key: key}, errors.Wrapf(err, "create signer")
 }
 
+// Load private key from PKCS#8 file and create new PKS#1 1.5 SHA512 signer handler. File should contains
+// --PRIVATE KEY-- section
 func NewSignerFromFile(privateKeyFile string, header string) (SenderHandler, error) {
 	key, err := loadPrivateKeyFile(privateKeyFile)
 	return &messageSigner{header: header, key: key}, errors.Wrapf(err, "create signer from file")
@@ -156,11 +159,16 @@ func (mv *messageValidator) Handle(msg *amqp.Delivery) (bool) {
 	return true
 }
 
+// Creates new handler that validates messages against signature header. Important!
+// application MUST drop duplicated (by message id) messages by it self or
+// it's possible just to resend same messages multiple times.
 func NewCertValidator(cert []byte, header string, log Logger) (ReceiverHandler, error) {
 	key, err := loadCertificate(cert)
 	return &messageValidator{header: header, cert: key, logger: log}, errors.Wrapf(err, "create validator")
 }
 
+// Creates new handler (see NewCertValidator) with key from public ASN.1 DER certificate. Certificate
+// should contain --CERTIFICATE-- section
 func NewCertValidatorFromFile(certFile string, header string, log Logger) (ReceiverHandler, error) {
 	key, err := loadCertificateFromFile(certFile)
 	return &messageValidator{header: header, cert: key, logger: log}, errors.Wrapf(err, "create validator from file")
