@@ -69,10 +69,27 @@ func run() error {
 	writer := publisherCfg.Create()
 	log.Println("publisher prepared")
 	log.Println("waiting for input data...")
-	data, err := ioutil.ReadAll(os.Stdin)
-	if err != nil {
-		log.Println("failed read STDIN")
-		return err
+
+	input := make(chan []byte)
+	go func() {
+		data, err := ioutil.ReadAll(os.Stdin)
+		log.Println("failed read STDIN:", err)
+		if err != nil {
+			close(input)
+		} else {
+			input <- data
+		}
+	}()
+	var data []byte
+
+	select {
+	case inData, ok := <-input:
+		if !ok {
+			return errors.New("read STDIN")
+		}
+		data = inData
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 
 	if config.MessageID == "" {
