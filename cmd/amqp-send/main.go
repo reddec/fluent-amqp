@@ -10,6 +10,11 @@ import (
 	"context"
 	"github.com/pkg/errors"
 	"github.com/google/uuid"
+	"fmt"
+)
+
+var (
+	version = "dev"
 )
 
 var config struct {
@@ -31,7 +36,8 @@ var config struct {
 	Interval time.Duration `short:"R" long:"reconnect-interval" env:"BROKER_RECONNECT_INTERVAL" description:"Reconnect timeout" default:"5s"`
 	Timeout  time.Duration `short:"T" long:"timeout" env:"BROKER_CONNECT_TIMEOUT" description:"Connect timeout" default:"30s"`
 
-	Quiet bool `short:"q" long:"quiet" env:"BROKER_QUIET" description:"Suppress all log messages"`
+	Quiet   bool `short:"q" long:"quiet" env:"BROKER_QUIET" description:"Suppress all log messages"`
+	Version bool `short:"v" long:"version" description:"Print version and exit"`
 }
 
 func run() error {
@@ -86,9 +92,14 @@ func run() error {
 }
 
 func main() {
-	_, err := flags.Parse(&config)
+	parser := flags.NewParser(&config, flags.Default)
+	_, err := parser.Parse()
 	if err != nil {
 		os.Exit(1)
+	}
+	if config.Version {
+		fmt.Println(version)
+		return
 	}
 	if config.Quiet {
 		log.SetOutput(ioutil.Discard)

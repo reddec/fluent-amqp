@@ -1,0 +1,22 @@
+# This is an example goreleaser.yaml file with some sane defaults.
+# Make sure to check the documentation at http://goreleaser.com
+builds:
+- binary: amqp-send
+  main: cmd/amqp-send/main.go
+  goos:
+  - windows
+  - darwin
+  - linux
+  goarch:
+  - amd64
+  - 386
+  - arm64
+archive:
+  format: tar.gz
+nfpm:
+  homepage: https://github.com/reddec/fluent-amqp
+  description: Library for fluent AMQP connections on Go
+  maintainer: RedDec <owner@reddec.net>
+  license: MIT
+  formats:
+  - deb
