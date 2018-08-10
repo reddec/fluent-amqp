@@ -94,12 +94,12 @@ func run() error {
 func main() {
 	parser := flags.NewParser(&config, flags.Default)
 	_, err := parser.Parse()
-	if err != nil {
-		os.Exit(1)
-	}
 	if config.Version {
 		fmt.Println(version)
 		return
+	}
+	if err != nil {
+		os.Exit(1)
 	}
 	if config.Quiet {
 		log.SetOutput(ioutil.Discard)
