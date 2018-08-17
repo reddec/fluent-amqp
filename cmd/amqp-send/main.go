@@ -20,7 +20,7 @@ var (
 var config struct {
 	URLs          []string          `short:"u" long:"url"              env:"BROKER_URL"         description:"One or more AMQP brokers urls" default:"amqp://guest:guest@localhost" required:"yes"`
 	Exchange      string            `short:"e" long:"exchange"         env:"BROKER_EXCHANGE"    description:"Name of AMQP exchange. Can be empty"`
-	ExchangeType  string            `short:"k" long:"kind"             env:"BROKER_KIND"        description:"Exchange kind" choice:"direct,topic,fanout" default:"direct"`
+	ExchangeType  string            `short:"k" long:"kind"             env:"BROKER_KIND"        description:"Exchange kind"  choice:"direct" choice:"topic" choice:"fanout"  default:"direct"`
 	Sign          string            `short:"s" long:"sign-private-key" env:"BROKER_SIGN"        description:"Path to private key to sign"`
 	MessageID     string            `short:"i" long:"id"               env:"BROKER_MESSAGED_ID" description:"Message ID. If empty it is generated"`
 	ReplyTo       string            `short:"r" long:"reply-to"         env:"BROKER_REPLY_TO"    description:"Reply queue name. Should be used together with correlation-id"`
@@ -70,11 +70,11 @@ func run() error {
 	log.Println("publisher prepared")
 	log.Println("waiting for input data...")
 
-	input := make(chan []byte)
+	input := make(chan []byte, 1)
 	go func() {
 		data, err := ioutil.ReadAll(os.Stdin)
-		log.Println("failed read STDIN:", err)
 		if err != nil {
+			log.Println("failed read STDIN:", err)
 			close(input)
 		} else {
 			input <- data

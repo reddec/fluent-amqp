@@ -115,6 +115,26 @@ func (snk *SinkConfig) Fanout(name string) *Exchange {
 	return snk.exchange(name, "fanout")
 }
 
+func (snk *SinkConfig) HandlerFunc(fn SinkHandlerFunc) *Server {
+	snk.handler = fn
+	snk.broker.handle(&sink{*snk})
+	return snk.broker
+}
+
+func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
+	snk.ManualAck()
+	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
+		err := fn(ctx, msg)
+		if err != nil {
+			msg.Nack(false, true)
+		} else {
+			msg.Ack(false)
+		}
+	})
+}
+
+func (snk *SinkConfig) Transact(fn TransactionHandler) *Server { return snk.TransactFunc(fn.Handle) }
+
 func (exc *Exchange) Key(routingKey string) *Exchange {
 	exc.binding = append(exc.binding, routingKey)
 	return exc

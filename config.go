@@ -5,6 +5,7 @@ import (
 	"context"
 	"log"
 	"io/ioutil"
+	"os"
 )
 
 type Logger interface {
@@ -42,6 +43,10 @@ func (bc *BrokerConfig) Timeout(tm time.Duration) *BrokerConfig {
 func (bc *BrokerConfig) Logger(logger Logger) *BrokerConfig {
 	bc.logger = logger
 	return bc
+}
+
+func (bc *BrokerConfig) StdLogger(prefix string) *BrokerConfig {
+	return bc.Logger(log.New(os.Stderr, prefix, log.LstdFlags))
 }
 
 func (bc *BrokerConfig) Context(ctx context.Context) *BrokerConfig {
