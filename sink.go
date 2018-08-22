@@ -135,8 +135,11 @@ func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 
 func (snk *SinkConfig) Transact(fn TransactionHandler) *Server { return snk.TransactFunc(fn.Handle) }
 
-func (exc *Exchange) Key(routingKey string) *Exchange {
-	exc.binding = append(exc.binding, routingKey)
+func (exc *Exchange) Key(routingKeys ...string) *Exchange {
+	for _, key := range routingKeys {
+		exc.binding = append(exc.binding, key)
+	}
+
 	return exc
 }
 
