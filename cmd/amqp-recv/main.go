@@ -1,18 +1,18 @@
 package main
 
 import (
-	"github.com/jessevdk/go-flags"
-	"os"
-	"github.com/reddec/fluent-amqp"
-	"log"
-	"io/ioutil"
-	"time"
 	"context"
-	"github.com/pkg/errors"
+	"encoding/json"
 	"fmt"
-	"github.com/streadway/amqp"
 	"github.com/davecgh/go-spew/spew"
-	"github.com/apex/log/handlers/json"
+	"github.com/jessevdk/go-flags"
+	"github.com/pkg/errors"
+	"github.com/reddec/fluent-amqp"
+	"github.com/streadway/amqp"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
 )
 
 var (
@@ -59,7 +59,7 @@ func run() error {
 		case "dump":
 			spew.Dump(msg)
 		case "json":
-			dec := json.New(os.Stdout)
+			dec := json.NewEncoder(os.Stdout)
 			dec.SetIndent("", "  ")
 			dec.Encode(&msg)
 		case "body", "plain":

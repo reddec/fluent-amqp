@@ -1,11 +1,11 @@
 package fluent
 
 import (
-	"github.com/streadway/amqp"
 	"context"
 	"encoding/json"
-	"time"
+	"github.com/streadway/amqp"
 	"strconv"
+	"time"
 )
 
 const DefaultSignatureHeader = "X-Signature"
@@ -164,9 +164,16 @@ func (msg *Message) Key(name string) *Message {
 	return msg
 }
 
-func (msg *Message) Reply(correlationId, queueName string) *Message {
+func (msg *Message) ReplyTo(correlationId, queueName string) *Message {
 	msg.msg.CorrelationId = correlationId
 	msg.msg.ReplyTo = queueName
+	return msg
+}
+
+func (msg *Message) Reply(correlationId, queueName string) *Message {
+	msg.msg.CorrelationId = correlationId
+	msg.exchange = ""
+	msg.key = queueName
 	return msg
 }
 
