@@ -137,7 +137,7 @@ func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 	snk.ManualAck()
 	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
 		err := fn(ctx, msg)
-		if err != nil {
+		if err == nil {
 			msg.Ack(false)
 		} else if snk.requeue == nil {
 			// no requeue
