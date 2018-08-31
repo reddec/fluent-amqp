@@ -35,7 +35,8 @@ type SinkConfig struct {
 	attrs        amqp.Table
 	retries      int
 
-	rq *ReQueueConfig
+	rqConfig *ReQueueConfig
+	requeue  Requeue
 }
 
 func newSink(queue string, broker *Server) *SinkConfig {
@@ -48,7 +49,7 @@ func newSink(queue string, broker *Server) *SinkConfig {
 }
 
 func (snk *SinkConfig) Requeue(interval time.Duration) *SinkConfig {
-	snk.rq = snk.broker.Requeue(snk.queueName).Timeout(interval)
+	snk.rqConfig = snk.broker.Requeue(snk.queueName).Timeout(interval)
 	return snk
 }
 
@@ -126,8 +127,8 @@ func (snk *SinkConfig) Fanout(name string) *Exchange {
 func (snk *SinkConfig) HandlerFunc(fn SinkHandlerFunc) *Server {
 	snk.handler = fn
 	snk.broker.handle(&sink{*snk})
-	if snk.rq != nil {
-		snk.rq.Create()
+	if snk.rqConfig != nil {
+		snk.requeue = snk.rqConfig.Create()
 	}
 	return snk.broker
 }
@@ -137,9 +138,16 @@ func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
 		err := fn(ctx, msg)
 		if err != nil {
-			msg.Nack(false, true)
-		} else {
 			msg.Ack(false)
+		} else if snk.requeue == nil {
+			// no requeue
+			msg.Nack(false, true)
+		} else if err = snk.requeue.Requeue(&msg); err == nil {
+			// requeue exists and it's OK
+			msg.Ack(false)
+		} else {
+			// requeue exists but failed
+			msg.Nack(false, true)
 		}
 	})
 }
