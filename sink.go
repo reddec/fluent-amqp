@@ -5,6 +5,7 @@ import (
 	"github.com/streadway/amqp"
 	"log"
 	"os"
+	"time"
 )
 
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
@@ -33,6 +34,8 @@ type SinkConfig struct {
 	deadExchange string
 	attrs        amqp.Table
 	retries      int
+
+	rq *ReQueueConfig
 }
 
 func newSink(queue string, broker *Server) *SinkConfig {
@@ -42,6 +45,11 @@ func newSink(queue string, broker *Server) *SinkConfig {
 		autoAck:   true,
 		retries:   10,
 	}
+}
+
+func (snk *SinkConfig) Requeue(interval time.Duration) *SinkConfig {
+	snk.rq = snk.broker.Requeue(snk.queueName).Timeout(interval)
+	return snk
 }
 
 func (snk *SinkConfig) ManualAck() *SinkConfig {
@@ -118,6 +126,9 @@ func (snk *SinkConfig) Fanout(name string) *Exchange {
 func (snk *SinkConfig) HandlerFunc(fn SinkHandlerFunc) *Server {
 	snk.handler = fn
 	snk.broker.handle(&sink{*snk})
+	if snk.rq != nil {
+		snk.rq.Create()
+	}
 	return snk.broker
 }
 
