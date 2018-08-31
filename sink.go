@@ -175,25 +175,11 @@ func (exc *Exchange) Fanout(name string) *Exchange {
 }
 
 func (exc *Exchange) HandlerFunc(fn SinkHandlerFunc) *Server {
-	exc.sink.handler = fn
-	exc.sink.broker.handle(&sink{*exc.sink})
-	// help gc
-	brk := exc.sink.broker
-	exc.sink.broker = nil
-	exc.sink = nil
-	return brk
+	return exc.sink.HandlerFunc(fn)
 }
 
 func (exc *Exchange) TransactFunc(fn TransactionHandlerFunc) *Server {
-	exc.sink.ManualAck()
-	return exc.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
-		err := fn(ctx, msg)
-		if err != nil {
-			msg.Nack(false, true)
-		} else {
-			msg.Ack(false)
-		}
-	})
+	return exc.sink.TransactFunc(fn)
 }
 
 func (exc *Exchange) Transact(fn TransactionHandler) *Server { return exc.TransactFunc(fn.Handle) }
