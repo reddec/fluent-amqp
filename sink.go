@@ -144,7 +144,7 @@ func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 			msg.Nack(false, true)
 		} else if err = snk.requeue.Requeue(&msg); err == nil {
 			// requeue exists and it's OK
-			msg.Ack(false)
+			msg.Nack(false, false)
 		} else {
 			// requeue exists but failed
 			msg.Nack(false, true)

@@ -3,6 +3,7 @@ package fluent
 import (
 	"context"
 	"encoding/json"
+	"github.com/pkg/errors"
 	"github.com/streadway/amqp"
 	"strconv"
 	"time"
@@ -202,6 +203,22 @@ func (msg *Message) JSON(obj interface{}) *Message {
 func (msg *Message) TTL(tm time.Duration) *Message {
 	msg.msg.Expiration = strconv.FormatInt(int64(tm/time.Millisecond), 10)
 	return msg
+}
+
+func (ms *Message) SendContext(ctx context.Context) error {
+	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange}
+	if !ms.processMessage(&m.msg) {
+		return errors.New("rejected by middleware")
+	}
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case ms.writer.pub.stream <- m:
+		return nil
+	case <-ms.writer.ctx.Done():
+		return ms.writer.ctx.Err()
+	}
 }
 
 func (ms *Message) Send() {
