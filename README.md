@@ -1,4 +1,9 @@
 # Fluent AMQP
+
+[![Docker Automated build](https://img.shields.io/docker/automated/reddec/fluent-amqp.svg)](https://hub.docker.com/r/reddec/fluent-amqp/)
+[![Telegram Sender](https://img.shields.io/docker/automated/reddec/fluent-amqp-telegram-sender.svg)](https://hub.docker.com/r/reddec/fluent-amqp-telegram-sender/)
+
+
 [![](https://godoc.org/github.com/reddec/fluent-amqp?status.svg)](https://godoc.org/github.com/reddec/fluent-amqp)
 
 Library that provides fluent and easy wrapper over [streadway-amqp](https://github.com/streadway/amqp) API.
