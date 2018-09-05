@@ -1,6 +1,6 @@
 # Fluent AMQP
 
-[![Docker Automated build](https://img.shields.io/docker/automated/reddec/fluent-amqp.svg)](https://hub.docker.com/r/reddec/fluent-amqp/)
+[![Docker Automated build](https://img.shields.io/docker/build/reddec/fluent-amqp.svg)](https://hub.docker.com/r/reddec/fluent-amqp/)
 [![Telegram Sender](https://img.shields.io/docker/automated/reddec/fluent-amqp-telegram-sender.svg)](https://hub.docker.com/r/reddec/fluent-amqp-telegram-sender/)
 
 
