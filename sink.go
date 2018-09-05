@@ -15,6 +15,10 @@ type TransactionHandler interface {
 	Handle(ctx context.Context, msg amqp.Delivery) (error)
 }
 
+type SimpleHandler interface {
+	Handle(ctx context.Context, msg amqp.Delivery)
+}
+
 type Exchange struct {
 	name    string
 	kind    string
@@ -133,6 +137,10 @@ func (snk *SinkConfig) HandlerFunc(fn SinkHandlerFunc) *Server {
 	return snk.broker
 }
 
+func (snk *SinkConfig) Handler(obj SimpleHandler) *Server {
+	return snk.HandlerFunc(obj.Handle)
+}
+
 func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 	snk.ManualAck()
 	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
@@ -176,6 +184,10 @@ func (exc *Exchange) Fanout(name string) *Exchange {
 
 func (exc *Exchange) HandlerFunc(fn SinkHandlerFunc) *Server {
 	return exc.sink.HandlerFunc(fn)
+}
+
+func (exc *Exchange) Handler(obj SimpleHandler) *Server {
+	return exc.HandlerFunc(obj.Handle)
 }
 
 func (exc *Exchange) TransactFunc(fn TransactionHandlerFunc) *Server {

@@ -27,3 +27,43 @@ DATA = BYTES(ID) ... BYTES(BODY)
 SIGN_HEADER_BODY = SIGN_SHA512(PRIVATE_KEY, DATA)
 ```
 
+
+
+## Templates
+
+
+
+`amqp-recv` supports templating output `-o template`. Template content read from STDIN.
+
+Root template object is a [amqp.Delivery](https://github.com/streadway/amqp/blob/dcfad599551a8042d2e1971a496f31624a7f4738/delivery.go#L28) with functions
+from [Sprig](http://masterminds.github.io/sprig/) plus additional methods like:
+
+* `asText` - converts bytes to string
+
+
+1. Basic example:
+
+
+Print same as `-o plain`.
+
+```
+echo '{{- .Body | asText -}}' | amqp-recv -o template ...
+```
+
+2. Notification to telegram
+
+Use combination of basic CLI utils and templates.
+
+```bash
+TOKEN="xxxyyyy"        # BotFather token for Telegram (see here: https://t.me/BotFather)
+CHAT_ID="1234567"      # Target Telegram chat ID (find yours: https://t.me/MyTelegramID_bot)
+QUEUE="notification"   # queue name should be defined if persistent required
+EXCHANGE="amqp.topic"  # source of notification
+TYPE="topic"           # exchange type
+TOPIC="#"              # specify subject that will be sent over telegram (# - everything)
+
+while true; do
+  echo -n -e 'Subject: {{.RoutingKey}}\n\n{{.Body | asText}}' | amqp-recv -o template -Q $QUEUE -e $EXCHANGE -k $TYPE "$TOPIC" > message.txt
+  curl -f -X POST --data "text=$(cat message.txt)" --data "chat_id=${CHAT_ID}" "https://api.telegram.org/bot${TOKEN}/sendMessage" || exit 1
+done
+```
