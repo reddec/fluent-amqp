@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/jessevdk/go-flags"
-	"os"
-	"github.com/reddec/fluent-amqp"
-	"log"
-	"io/ioutil"
-	"time"
 	"context"
-	"github.com/pkg/errors"
-	"github.com/google/uuid"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/jessevdk/go-flags"
+	"github.com/pkg/errors"
+	"github.com/reddec/fluent-amqp"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"time"
 )
 
 var (
@@ -39,11 +40,12 @@ var config struct {
 	Quiet   bool `short:"q" long:"quiet" env:"BROKER_QUIET" description:"Suppress all log messages"`
 	Version bool `short:"v" long:"version" description:"Print version and exit"`
 }
+var logOutput io.Writer = os.Stderr
 
 func run() error {
 	gctx, cancel := context.WithCancel(context.Background())
 	ctx := fluent.SignalContext(gctx)
-	broker := fluent.Broker(config.URLs...).Context(ctx).Logger(log.New(os.Stderr, "[broker] ", log.LstdFlags)).Interval(config.Interval).Timeout(config.Timeout).Start()
+	broker := fluent.Broker(config.URLs...).Context(ctx).Logger(log.New(logOutput, "[broker] ", log.LstdFlags)).Interval(config.Interval).Timeout(config.Timeout).Start()
 	defer broker.WaitToFinish()
 	defer cancel()
 	log.Println("preparing publisher")
@@ -103,9 +105,14 @@ func run() error {
 		msg = msg.Header(k, v)
 	}
 
-	msg = msg.Type(config.ContentType).Reply(config.CorrelationID, config.ReplyTo)
-	msg.Send()
-	return ctx.Err()
+	msg = msg.Type(config.ContentType).ReplyTo(config.CorrelationID, config.ReplyTo)
+	err := msg.PublishWait(ctx)
+	if err != nil {
+		log.Println("failed publish:", err)
+	} else {
+		log.Println("published")
+	}
+	return nil
 }
 
 func main() {
@@ -119,8 +126,10 @@ func main() {
 		os.Exit(1)
 	}
 	if config.Quiet {
-		log.SetOutput(ioutil.Discard)
+		logOutput = ioutil.Discard
 	}
+	log.SetPrefix("[send  ] ")
+	log.SetOutput(logOutput)
 	err = run()
 	if err != nil {
 		log.Println("failed:", err)

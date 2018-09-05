@@ -20,7 +20,7 @@ type WriterConfig struct {
 }
 
 func newWriter(broker *Server) *WriterConfig {
-	return &WriterConfig{broker: broker}
+	return &WriterConfig{broker: broker, exchange: "", kind: "direct"}
 }
 
 func (wc *WriterConfig) withExchange(name, kind string) *WriterConfig {
@@ -69,6 +69,7 @@ type msg struct {
 	key      string
 	msg      amqp.Publishing
 	try      chan error
+	done     chan struct{}
 }
 
 type publisher struct {
@@ -94,6 +95,9 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 			if err != nil {
 				return err
 			}
+			if pub.lastMsg.done != nil {
+				close(pub.lastMsg.done)
+			}
 			pub.lastMsg = nil
 		}
 		select {
@@ -112,11 +116,13 @@ type Writer struct {
 }
 
 func (writer *Writer) Prepare() *Message {
-	return &Message{
+	msg := &Message{
 		exchange: writer.pub.config.exchange,
 		key:      writer.pub.config.topic,
 		writer:   writer,
 	}
+	msg.msg.DeliveryMode = amqp.Persistent
+	return msg
 }
 
 func (writer *Writer) Reply(msg *amqp.Delivery) *Message {
@@ -127,6 +133,7 @@ func (writer *Writer) Reply(msg *amqp.Delivery) *Message {
 	}
 
 	ms.msg.CorrelationId = msg.CorrelationId
+	ms.msg.DeliveryMode = amqp.Persistent
 	return ms
 }
 
@@ -201,36 +208,53 @@ func (msg *Message) JSON(obj interface{}) *Message {
 }
 
 func (msg *Message) TTL(tm time.Duration) *Message {
-	msg.msg.Expiration = strconv.FormatInt(int64(tm/time.Millisecond), 10)
+	if tm != 0 {
+		msg.msg.Expiration = strconv.FormatInt(int64(tm/time.Millisecond), 10)
+	}
 	return msg
 }
 
-func (ms *Message) SendContext(ctx context.Context) error {
-	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange}
+func (ms *Message) Publish(ctx context.Context) (<-chan struct{}, error) {
+	done := make(chan struct{})
+	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange, done: done}
 	if !ms.processMessage(&m.msg) {
-		return errors.New("rejected by middleware")
+		close(done)
+		return done, errors.New("rejected by middleware")
 	}
 
 	select {
 	case <-ctx.Done():
-		return ctx.Err()
+		close(done)
+		return done, ctx.Err()
 	case ms.writer.pub.stream <- m:
-		return nil
+		return done, nil
 	case <-ms.writer.ctx.Done():
-		return ms.writer.ctx.Err()
+		close(done)
+		return done, ms.writer.ctx.Err()
 	}
 }
 
-func (ms *Message) Send() {
-	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange}
-	if !ms.processMessage(&m.msg) {
-		return
+func (ms *Message) PublishWait(ctx context.Context) error {
+	ch, err := ms.Publish(ctx)
+	if err != nil {
+		return err
 	}
-
 	select {
-	case ms.writer.pub.stream <- m:
-	case <-ms.writer.ctx.Done():
+	case <-ch:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
+}
+
+func (ms *Message) SendContext(ctx context.Context) error {
+	_, err := ms.Publish(ctx)
+	return err
+}
+
+func (ms *Message) Send() <-chan struct{} {
+	ch, _ := ms.Publish(context.Background())
+	return ch
 }
 
 func (ms *Message) TrySend() error {

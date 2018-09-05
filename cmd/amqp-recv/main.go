@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/reddec/fluent-amqp"
 	"github.com/streadway/amqp"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -38,10 +39,12 @@ var config struct {
 	Version bool `short:"v" long:"version" description:"Print version and exit"`
 }
 
+var logOutput io.Writer = os.Stderr
+
 func run() error {
 	gctx, cancel := context.WithCancel(context.Background())
 	ctx := fluent.SignalContext(gctx)
-	broker := fluent.Broker(config.URLs...).Context(ctx).Logger(log.New(os.Stderr, "[broker] ", log.LstdFlags)).Interval(config.Interval).Timeout(config.Timeout).Start()
+	broker := fluent.Broker(config.URLs...).Context(ctx).Logger(log.New(logOutput, "[broker] ", log.LstdFlags)).Interval(config.Interval).Timeout(config.Timeout).Start()
 	defer broker.WaitToFinish()
 	defer cancel()
 	log.Println("preparing sink")
@@ -107,8 +110,10 @@ func main() {
 		os.Exit(1)
 	}
 	if config.Quiet {
-		log.SetOutput(ioutil.Discard)
+		logOutput = ioutil.Discard
 	}
+	log.SetPrefix("[recv  ] ")
+	log.SetOutput(logOutput)
 	err = run()
 	if err != nil {
 		log.Println("failed:", err)
