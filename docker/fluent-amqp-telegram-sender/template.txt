@@ -1,0 +1,3 @@
+Subject: {{.RoutingKey}}
+
+{{.Body | asText}}
