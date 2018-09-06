@@ -121,19 +121,16 @@ func (writer *Writer) Prepare() *Message {
 		key:      writer.pub.config.topic,
 		writer:   writer,
 	}
+	msg.msg.Timestamp = time.Now().UTC()
 	msg.msg.DeliveryMode = amqp.Persistent
 	return msg
 }
 
 func (writer *Writer) Reply(msg *amqp.Delivery) *Message {
-	ms := &Message{
-		exchange: "",
-		key:      msg.ReplyTo,
-		writer:   writer,
-	}
-
+	ms := writer.Prepare()
+	ms.exchange = ""
+	ms.key = msg.ReplyTo
 	ms.msg.CorrelationId = msg.CorrelationId
-	ms.msg.DeliveryMode = amqp.Persistent
 	return ms
 }
 
@@ -142,6 +139,15 @@ type Message struct {
 	exchange string
 	key      string
 	writer   *Writer
+}
+
+func (msg *Message) Raw() *amqp.Publishing {
+	return &msg.msg
+}
+
+func (msg *Message) Time(stamp time.Time) *Message {
+	msg.msg.Timestamp = stamp
+	return msg
 }
 
 func (msg *Message) ID(id string) *Message {

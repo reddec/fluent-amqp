@@ -33,6 +33,13 @@ SIGN_HEADER_BODY = SIGN_SHA512(PRIVATE_KEY, DATA)
 ```
 
 
+## Default message
+
+Message by default has:
+
+* Delivery type - persistent
+* Time - current time in UTC
+
 
 ## Templates
 
