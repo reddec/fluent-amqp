@@ -79,6 +79,21 @@ func (dh *templateHandler) Handle(ctx context.Context, msg amqp.Delivery) {
 	}
 }
 
+type limited struct {
+	Num         int
+	HandlerFunc fluent.SinkHandlerFunc
+	idx         int
+}
+
+func (dh *limited) Handle(ctx context.Context, msg amqp.Delivery) error {
+	if dh.idx >= dh.Num {
+		return errors.New("limit reached")
+	}
+	dh.idx++
+	dh.HandlerFunc(ctx, msg)
+	return nil
+}
+
 func run() error {
 	gctx, cancel := context.WithCancel(context.Background())
 	ctx := fluent.SignalContext(gctx)
@@ -123,7 +138,9 @@ func run() error {
 		handler.Handle(ctx, msg)
 		cancel()
 	}
+
 	var exc *fluent.Exchange
+
 	if config.Exchange != "" {
 		switch config.ExchangeType {
 		case "topic":
@@ -140,9 +157,9 @@ func run() error {
 			exc = exc.Key(config.Args.RoutingKey)
 		}
 
-		exc.HandlerFunc(handlerFunc)
+		exc.Transact(&limited{Num: 1, HandlerFunc: handlerFunc})
 	} else {
-		publisherCfg.HandlerFunc(handlerFunc)
+		publisherCfg.Transact(&limited{Num: 1, HandlerFunc: handlerFunc})
 	}
 	log.Println("reader prepared")
 	log.Println("waiting for messages...")
