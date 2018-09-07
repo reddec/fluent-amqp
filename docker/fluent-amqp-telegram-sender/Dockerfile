@@ -1,9 +1,10 @@
-FROM reddec/fluent-amqp:v0.1.4
+FROM reddec/fluent-amqp:v0.1.5
 ENV TOKEN ''
 ENV CHAT_ID ''
 ENV BROKER_URL 'amqp://guest:guest@broker'
 ENV BROKER_EXCHANGE 'notifications'
 ENV BROKER_KIND 'topic'
+ENV BROKER_QUEUE "telegram-sender"
 ENV BROKER_ROUTING_KEY '#'
 ENV SOCKS5 ""
 
