@@ -1,4 +1,4 @@
-FROM reddec/fluent-amqp:v0.1.5
+FROM reddec/fluent-amqp:v0.1.6
 ENV TOKEN ''
 ENV CHAT_ID ''
 ENV BROKER_URL 'amqp://guest:guest@broker'
