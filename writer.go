@@ -213,6 +213,15 @@ func (msg *Message) JSON(obj interface{}) *Message {
 	return msg
 }
 
+func (msg *Message) ContentType(mime string) *Message {
+	msg.msg.ContentType = mime
+	return msg
+}
+
+func (msg *Message) JSONContent(data []byte) *Message {
+	return msg.ContentType("application/json").Bytes(data)
+}
+
 func (msg *Message) TTL(tm time.Duration) *Message {
 	if tm != 0 {
 		msg.msg.Expiration = strconv.FormatInt(int64(tm/time.Millisecond), 10)
