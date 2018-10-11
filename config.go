@@ -13,23 +13,31 @@ type Logger interface {
 }
 
 type BrokerConfig struct {
-	defaultSinkRetriesCount int
-	urls                    []string
-	reconnectInterval       time.Duration
-	connectTimeout          time.Duration
-	ctx                     context.Context
-	logger                  Logger
+	defaultSink struct {
+		retries                int
+		expiredMessagesHandler DefaultSinkExpiredHandler
+		tooMuchRetries         struct {
+			handler   DefaultSinkExpiredHandler
+			threshold int64
+		}
+	}
+	urls              []string
+	reconnectInterval time.Duration
+	connectTimeout    time.Duration
+	ctx               context.Context
+	logger            Logger
 }
 
 func Broker(urls ...string) *BrokerConfig {
-	return &BrokerConfig{
-		defaultSinkRetriesCount: 10,
-		urls:                    urls,
-		reconnectInterval:       5 * time.Second,
-		connectTimeout:          20 * time.Second,
-		ctx:                     context.Background(),
-		logger:                  log.New(ioutil.Discard, "", 0),
+	cfg := &BrokerConfig{
+		urls:              urls,
+		reconnectInterval: 5 * time.Second,
+		connectTimeout:    20 * time.Second,
+		ctx:               context.Background(),
+		logger:            log.New(ioutil.Discard, "", 0),
 	}
+	cfg.defaultSink.retries = 10
+	return cfg
 }
 
 func (bc *BrokerConfig) Interval(tm time.Duration) *BrokerConfig {
@@ -50,7 +58,7 @@ func (bc *BrokerConfig) Logger(logger Logger) *BrokerConfig {
 // Default (can be changed in a Sink) maximum retries for sink with TransactHandlers.
 // Negative value means no limit. Default is 10.
 func (bc *BrokerConfig) Retries(num int) *BrokerConfig {
-	bc.defaultSinkRetriesCount = num
+	bc.defaultSink.retries = num
 	return bc
 }
 
@@ -68,7 +76,6 @@ func (bc *BrokerConfig) Start() *Server {
 		config:              *bc,
 		refreshHandlers:     make(chan struct{}, 1),
 		done:                make(chan struct{}),
-		defaultRetriesCount: 10,
 	}
 	go brk.serve()
 	return brk

@@ -15,14 +15,17 @@ type StateHandler interface {
 	ChannelReady(ctx context.Context, ch *amqp.Channel) error
 }
 
+// Handler for sinks to catch expired messages (see SinkConfig OnExpired and OnTooMuchRetries)
+type DefaultSinkExpiredHandler func(ctx context.Context, sinkName string, msg amqp.Delivery, retries int64) bool
+
 // Server keeps broker configuration and all declared objects (queues, exchanges and else) for re-declare after restart
 type Server struct {
-	config              BrokerConfig
-	handlersLock        sync.Mutex
-	handlers            []StateHandler
-	refreshHandlers     chan struct{}
-	done                chan struct{}
-	urlIndex            int
+	config          BrokerConfig
+	handlersLock    sync.Mutex
+	handlers        []StateHandler
+	refreshHandlers chan struct{}
+	done            chan struct{}
+	urlIndex        int
 }
 
 func (brk *Server) handle(st StateHandler) *Server {

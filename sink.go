@@ -11,6 +11,9 @@ import (
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
 type TransactionHandlerFunc func(ctx context.Context, msg amqp.Delivery) (error)
 
+// Handler for messages that reached retries amount. False return means request to drop message
+type SinkExpiredHandlerFunc func(ctx context.Context, msg amqp.Delivery, retries int64) bool
+
 type TransactionHandler interface {
 	Handle(ctx context.Context, msg amqp.Delivery) (error)
 }
@@ -28,28 +31,67 @@ type Exchange struct {
 }
 
 type SinkConfig struct {
-	handler      SinkHandlerFunc
-	queueName    string
-	bindings     []*Exchange
-	middleware   []ReceiverHandler
-	broker       *Server
-	autoAck      bool
-	deadQueue    string
-	deadExchange string
-	attrs        amqp.Table
-	retries      int
+	name                   string
+	handler                SinkHandlerFunc
+	queueName              string
+	bindings               []*Exchange
+	middleware             []ReceiverHandler
+	broker                 *Server
+	autoAck                bool
+	deadQueue              string
+	deadExchange           string
+	attrs                  amqp.Table
+	retries                int
+	expiredMessagesHandler SinkExpiredHandlerFunc
+	tooMuchRetries         struct {
+		handler   SinkExpiredHandlerFunc
+		threshold int64
+	}
 
 	rqConfig *ReQueueConfig
 	requeue  Requeue
 }
 
 func newSink(queue string, broker *Server) *SinkConfig {
-	return &SinkConfig{
+	snk := &SinkConfig{
 		queueName: queue,
 		broker:    broker,
 		autoAck:   true,
-		retries:   broker.config.defaultSinkRetriesCount,
+		retries:   broker.config.defaultSink.retries,
 	}
+	if broker.config.defaultSink.expiredMessagesHandler != nil {
+		snk = snk.OnExpired(func(ctx context.Context, msg amqp.Delivery, retries int64) bool {
+			return broker.config.defaultSink.expiredMessagesHandler(ctx, snk.name, msg, retries)
+		})
+	}
+	if broker.config.defaultSink.tooMuchRetries.handler != nil {
+		snk = snk.OnTooMuchRetries(broker.config.defaultSink.tooMuchRetries.threshold, func(ctx context.Context, msg amqp.Delivery, retries int64) bool {
+			return broker.config.defaultSink.tooMuchRetries.handler(ctx, snk.name, msg, retries)
+		})
+	}
+	return snk
+}
+
+// Name of sink. Just a tag fo future identity (like in default handlers)
+func (snk *SinkConfig) Name(name string) *SinkConfig {
+	snk.name = name
+	return snk
+}
+
+// Handler for expired (reached retries limit) messages
+func (snk *SinkConfig) OnExpired(handler SinkExpiredHandlerFunc) *SinkConfig {
+	snk.expiredMessagesHandler = handler
+	return snk
+}
+
+// Handler for messages that reached defined threshold retires limit. Threshold can be less
+// (in case of positive retries limit) or equal to retries limit and will executes before OnExpired (if applicable).
+// The handler will be invoked each times after threshold limit. If handler returns false, message is dropped.
+// In case when threshold is same as retries, requires at least one (from OnExpired or from OnTooMuschRetries) false to drop message.
+func (snk *SinkConfig) OnTooMuchRetries(threshold int64, handler SinkExpiredHandlerFunc) *SinkConfig {
+	snk.tooMuchRetries.handler = handler
+	snk.tooMuchRetries.threshold = threshold
+	return snk
 }
 
 func (snk *SinkConfig) Requeue(interval time.Duration) *SinkConfig {
@@ -263,14 +305,30 @@ LOOP:
 			if !ok {
 				break LOOP
 			}
-			if s.config.retries >= 0 && getRedelivery(&msg) > int64(s.config.retries) {
+			retries := getRedelivery(&msg)
+			var keepMessage bool
+
+			if s.config.tooMuchRetries.handler != nil && retries >= s.config.tooMuchRetries.threshold {
 				// too much retries
+				keepMessage = s.config.tooMuchRetries.handler(ctx, msg, retries)
+			}
+
+			if s.config.retries >= 0 && retries > int64(s.config.retries) {
+				// expired
+				if s.config.expiredMessagesHandler != nil {
+					keepMessage = keepMessage && s.config.expiredMessagesHandler(ctx, msg, retries)
+				} else {
+					keepMessage = false
+				}
+			}
+			if !keepMessage {
 				err = msg.Nack(false, false)
 				if err != nil {
 					return err
 				}
 				continue
 			}
+
 			msg.RoutingKey = restoreRoutingKey(&msg)
 
 			filtered := false
