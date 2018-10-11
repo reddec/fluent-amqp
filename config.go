@@ -62,6 +62,19 @@ func (bc *BrokerConfig) Retries(num int) *BrokerConfig {
 	return bc
 }
 
+// Default handler for Expired handler in a sink
+func (bc *BrokerConfig) OnExpired(handler DefaultSinkExpiredHandler) *BrokerConfig {
+	bc.defaultSink.expiredMessagesHandler = handler
+	return bc
+}
+
+// Default handler for TooMuchRetries handler in a sink
+func (bc *BrokerConfig) OnTooMuchRetries(threshold int64, handler DefaultSinkExpiredHandler) *BrokerConfig {
+	bc.defaultSink.tooMuchRetries.handler = handler
+	bc.defaultSink.tooMuchRetries.threshold = threshold
+	return bc
+}
+
 func (bc *BrokerConfig) StdLogger(prefix string) *BrokerConfig {
 	return bc.Logger(log.New(os.Stderr, prefix, log.LstdFlags))
 }
@@ -73,9 +86,9 @@ func (bc *BrokerConfig) Context(ctx context.Context) *BrokerConfig {
 
 func (bc *BrokerConfig) Start() *Server {
 	brk := &Server{
-		config:              *bc,
-		refreshHandlers:     make(chan struct{}, 1),
-		done:                make(chan struct{}),
+		config:          *bc,
+		refreshHandlers: make(chan struct{}, 1),
+		done:            make(chan struct{}),
 	}
 	go brk.serve()
 	return brk
