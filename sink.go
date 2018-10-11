@@ -306,7 +306,7 @@ LOOP:
 				break LOOP
 			}
 			retries := getRedelivery(&msg)
-			var keepMessage bool
+			var keepMessage = true
 
 			if s.config.tooMuchRetries.handler != nil && retries >= s.config.tooMuchRetries.threshold {
 				// too much retries
