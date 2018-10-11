@@ -48,7 +48,7 @@ func newSink(queue string, broker *Server) *SinkConfig {
 		queueName: queue,
 		broker:    broker,
 		autoAck:   true,
-		retries:   10,
+		retries:   broker.config.defaultSinkRetriesCount,
 	}
 }
 

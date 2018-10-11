@@ -1,12 +1,12 @@
 package fluent
 
 import (
-	"github.com/streadway/amqp"
-	"time"
 	"context"
+	"github.com/streadway/amqp"
 	"net"
 	"regexp"
 	"sync"
+	"time"
 )
 
 var maskPassword = regexp.MustCompile(`[^/:]+:([^@:]+)@`)
@@ -17,12 +17,12 @@ type StateHandler interface {
 
 // Server keeps broker configuration and all declared objects (queues, exchanges and else) for re-declare after restart
 type Server struct {
-	config          BrokerConfig
-	handlersLock    sync.Mutex
-	handlers        []StateHandler
-	refreshHandlers chan struct{}
-	done            chan struct{}
-	urlIndex        int
+	config              BrokerConfig
+	handlersLock        sync.Mutex
+	handlers            []StateHandler
+	refreshHandlers     chan struct{}
+	done                chan struct{}
+	urlIndex            int
 }
 
 func (brk *Server) handle(st StateHandler) *Server {
