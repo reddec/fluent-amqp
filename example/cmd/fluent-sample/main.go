@@ -1,11 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"github.com/reddec/fluent-amqp"
+	"github.com/streadway/amqp"
 	"log"
 	"os"
-	"github.com/streadway/amqp"
-	"context"
 	"time"
 )
 
@@ -24,12 +25,24 @@ func main() {
 		Topic("sample").
 		Key("*").
 		TransactFunc(
-		func(ctx context.Context, msg amqp.Delivery) error {
-			println("gor")
-			return requeue.Requeue(&msg)
-		})
+			func(ctx context.Context, msg amqp.Delivery) error {
+				println("gor")
+				return requeue.Requeue(&msg)
+			})
 
-	broker.Sink("")
+	broker.Sink("echo").TransactFunc(func(ctx context.Context, msg amqp.Delivery) error {
+		fmt.Println("Hi!")
+		return publisher.Reply(&msg).JSON("hello world!").PublishWait(ctx)
+	})
+
+	rpc := fluent.BuildRPC(broker, "bot", "", "echo")
+
+	var ans string
+	err := rpc.RequestJSON("Hi!").WaitJSON(&ans)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(ans)
 
 	for i := 0; i < 5; i++ {
 		publisher.Prepare().String("Hello world!").Send()
