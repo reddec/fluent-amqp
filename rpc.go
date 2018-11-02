@@ -48,7 +48,7 @@ func (rpc *RPC) onMessage(ctx context.Context, msg amqp.Delivery) {
 	}
 }
 
-func (rpc *RPC) RequestRaw(msg *amqp.Publishing) *Reply {
+func (rpc *RPC) Raw(msg *amqp.Publishing) *Reply {
 	msg.CorrelationId = uuid.New().String()
 	msg.MessageId = msg.CorrelationId
 	msg.ReplyTo = rpc.queue
@@ -65,14 +65,27 @@ func (rpc *RPC) RequestRaw(msg *amqp.Publishing) *Reply {
 	return reply
 }
 
-func (rpc *RPC) RequestJSON(obj interface{}) *Reply {
+func (rpc *RPC) JSON(obj interface{}) *Reply {
 	data, err := json.Marshal(obj)
 	if err != nil {
 		panic(err)
 	}
-	return rpc.RequestRaw(&amqp.Publishing{
+	return rpc.Raw(&amqp.Publishing{
 		Body:        data,
 		ContentType: "application/json",
+	})
+}
+
+func (rpc *RPC) Bytes(data []byte) *Reply {
+	return rpc.Raw(&amqp.Publishing{
+		Body: data,
+	})
+}
+
+func (rpc *RPC) Content(data []byte, contentType string) *Reply {
+	return rpc.Raw(&amqp.Publishing{
+		Body:        data,
+		ContentType: contentType,
 	})
 }
 

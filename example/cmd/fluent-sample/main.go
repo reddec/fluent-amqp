@@ -38,7 +38,7 @@ func main() {
 	rpc := fluent.BuildRPC(broker, "bot", "", "echo")
 
 	var ans string
-	err := rpc.RequestJSON("Hi!").WaitJSON(&ans)
+	err := rpc.JSON("Hi!").JSON(&ans)
 	if err != nil {
 		panic(err)
 	}
