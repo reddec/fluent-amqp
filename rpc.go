@@ -86,10 +86,18 @@ func (rp *Reply) ID() string { return rp.id }
 
 func (rp *Reply) Data() chan<- *amqp.Delivery { return rp.ch }
 
-func (rp *Reply) WaitJSON(target interface{}) error {
+func (rp *Reply) JSON(target interface{}) error {
 	msg := <-rp.ch
 	if msg == nil {
 		return errors.New("closed channel")
 	}
 	return json.Unmarshal(msg.Body, target)
+}
+
+func (rp *Reply) Bytes() ([]byte, error) {
+	msg := <-rp.ch
+	if msg == nil {
+		return nil, errors.New("closed channel")
+	}
+	return msg.Body, nil
 }
