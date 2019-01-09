@@ -11,7 +11,7 @@ description: |
   - Optional auto-requeue (with delay)
   - Signing and verifiying messages by public/private pair
 
-
+license: MIT
 grade: stable
 confinement: strict
 
