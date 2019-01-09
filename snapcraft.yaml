@@ -1,0 +1,20 @@
+name: fluent-amqp
+version: git
+summary: AMQP utilities
+description: |
+  fluent-amqp contains set of CLI tools to operate with AMQP broker
+
+grade: devel
+confinement: devmode
+
+parts:
+  go:
+    source-tag: go1.11
+  cli:
+    after: [go]
+    plugin: go
+    go-importpath: github.com/reddec/fluent-amqp/cmd
+
+apps:
+  amqp-exec:
+    command: bin/amqp-exec
