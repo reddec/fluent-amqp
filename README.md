@@ -1,5 +1,8 @@
 # Fluent AMQP
 
+![FA](docs/logo.svg)
+
+
 [![Docker Automated build](https://img.shields.io/docker/build/reddec/fluent-amqp.svg)](https://hub.docker.com/r/reddec/fluent-amqp/)
 [![Telegram Sender](https://img.shields.io/docker/automated/reddec/fluent-amqp-telegram-sender.svg)](https://hub.docker.com/r/reddec/fluent-amqp-telegram-sender/)
 [![Snap Status](https://build.snapcraft.io/badge/reddec/fluent-amqp.svg)](https://build.snapcraft.io/user/reddec/fluent-amqp)
