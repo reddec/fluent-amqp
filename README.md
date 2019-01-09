@@ -2,7 +2,7 @@
 
 [![Docker Automated build](https://img.shields.io/docker/build/reddec/fluent-amqp.svg)](https://hub.docker.com/r/reddec/fluent-amqp/)
 [![Telegram Sender](https://img.shields.io/docker/automated/reddec/fluent-amqp-telegram-sender.svg)](https://hub.docker.com/r/reddec/fluent-amqp-telegram-sender/)
-
+[![Snap Status](https://build.snapcraft.io/badge/reddec/fluent-amqp.svg)](https://build.snapcraft.io/user/reddec/fluent-amqp)
 
 [![](https://godoc.org/github.com/reddec/fluent-amqp?status.svg)](https://godoc.org/github.com/reddec/fluent-amqp)
 
@@ -86,3 +86,9 @@ done
 * [amqp-exec](cmd/amqp-exec) - CGI like daemon to listen message and run executable (and send reply)
 * [amqp-recv](cmd/amqp-recv) - Receive message from AMQP (like `cat` command)
 * [amqp-send](cmd/amqp-send) - Send message to AMQP (like `wall` command)
+
+### Installation
+
+* snapcraft:
+`snap install fluent-amqp`
+* [pre-build binaries](releases) for all major platform

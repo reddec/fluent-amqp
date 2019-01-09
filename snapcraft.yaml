@@ -9,12 +9,16 @@ confinement: devmode
 
 parts:
   go:
-    source-tag: go1.11
+    source-tag: go1.11.2
   cli:
     after: [go]
     plugin: go
-    go-importpath: github.com/reddec/fluent-amqp/cmd
+    go-importpath: github.com/reddec/fluent-amqp
 
 apps:
   amqp-exec:
     command: bin/amqp-exec
+  amqp-send:
+    command: bin/amqp-send
+  amqp-recv:
+    command: bin/amqp-recv
