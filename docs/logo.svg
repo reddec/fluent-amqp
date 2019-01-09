@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="332.59842"
+   height="355.2756"
+   viewBox="0 0 87.999993 94.000003"
+   version="1.1"
+   id="svg8"
+   sodipodi:docname="logo.svg"
+   inkscape:version="0.92.3 (5aff6ba, 2018-11-25)">
+  <defs
+     id="defs2">
+    <filter
+       style="color-interpolation-filters:sRGB"
+       inkscape:label="Drop Shadow"
+       id="filter200">
+      <feFlood
+         flood-opacity="0.498039"
+         flood-color="rgb(0,0,0)"
+         result="flood"
+         id="feFlood190" />
+      <feComposite
+         in="flood"
+         in2="SourceGraphic"
+         operator="in"
+         result="composite1"
+         id="feComposite192" />
+      <feGaussianBlur
+         in="composite1"
+         stdDeviation="3"
+         result="blur"
+         id="feGaussianBlur194" />
+      <feOffset
+         dx="2"
+         dy="2"
+         result="offset"
+         id="feOffset196" />
+      <feComposite
+         in="SourceGraphic"
+         in2="offset"
+         operator="over"
+         result="composite2"
+         id="feComposite198" />
+    </filter>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="169.60472"
+     inkscape:cy="173.59545"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1853"
+     inkscape:window-height="1025"
+     inkscape:window-x="67"
+     inkscape:window-y="27"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     units="px" />
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-60.445679,-99.447403)">
+    <path
+       style="fill:#800000;stroke-width:0.68783295;filter:url(#filter200)"
+       d="m 254.13281,381.0918 c -10.99522,0 -19.84765,9.47831 -19.84765,21.25195 v 303.20898 c 0,11.77365 8.85243,21.25196 19.84765,21.25196 h 283.16211 c 10.99522,0 19.84766,-9.47831 19.84766,-21.25196 V 402.34375 c 0,-11.77364 -8.85244,-21.25195 -19.84766,-21.25195 z m 10.48242,54.00781 h 67.39258 v 13.44141 h -51.64843 v 37.05468 h 45.5039 v 13.24805 h -45.5039 v 55.10547 h -15.74415 z m 125.95118,27.64844 c 6.656,0 12.22507,0.83209 16.70507,2.49609 4.608,1.664 8.31877,3.96811 11.13477,6.91211 2.816,2.944 4.80113,6.52795 5.95313,10.75195 1.15199,4.224 1.72656,8.83222 1.72656,13.82422 v 55.67969 c -3.712,0.64 -8.63921,1.40869 -14.78321,2.30469 -6.016,0.896 -12.22304,1.34375 -18.62304,1.34375 -4.864,0 -9.60099,-0.44775 -14.20899,-1.34375 -4.608,-0.768 -8.70311,-2.17661 -12.28711,-4.22461 -3.584,-2.176 -6.46462,-5.12003 -8.64062,-8.83203 -2.176,-3.712 -3.26367,-8.44704 -3.26367,-14.20704 0,-5.11999 1.08767,-9.40923 3.26367,-12.86523 2.304,-3.584 5.18462,-6.46267 8.64062,-8.63867 3.584,-2.176 7.61571,-3.71338 12.09571,-4.60938 4.608,-1.024 9.21622,-1.53515 13.82422,-1.53515 6.272,0 12.41564,0.70333 18.43164,2.11133 V 497.5 c 0,-2.688 -0.32094,-5.24769 -0.96094,-7.67969 -0.512,-2.56 -1.59967,-4.86411 -3.26367,-6.91211 -1.536,-2.048 -3.71135,-3.64878 -6.52735,-4.80078 -2.688,-1.28 -6.20854,-1.91992 -10.56054,-1.91992 -5.504,0 -10.30439,0.38434 -14.40039,1.15234 -4.096,0.768 -7.23221,1.53669 -9.40821,2.30469 l -1.91992,-13.05664 c 2.176,-1.024 5.75995,-1.9195 10.75195,-2.6875 5.12,-0.768 10.56032,-1.15234 16.32032,-1.15234 z m 3.45703,49.91992 c -2.944,0 -5.82463,0.25558 -8.64063,0.76758 -2.816,0.384 -5.31228,1.15268 -7.48828,2.30468 -2.176,1.152 -3.967,2.68743 -5.375,4.60743 -1.408,1.792 -2.11328,4.09611 -2.11328,6.91211 0,5.76 1.91977,9.7917 5.75977,12.0957 3.968,2.176 9.2815,3.26562 15.9375,3.26562 3.968,0 7.48659,-0.12876 10.55859,-0.38476 3.2,-0.256 5.82505,-0.57694 7.87305,-0.96094 V 514.7793 c -2.048,-0.64 -4.54429,-1.15116 -7.48828,-1.53516 -2.816,-0.384 -5.82344,-0.57617 -9.02344,-0.57617 z"
+       transform="scale(0.26458333)"
+       id="rect80"
+       inkscape:connector-curvature="0" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="65.731461"
+       y="176.42552"
+       id="text204"><tspan
+         sodipodi:role="line"
+         x="65.731461"
+         y="176.42552"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:14.11111069px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#ffffff;stroke-width:0.26458332"
+         id="tspan206">fluent-amqp</tspan></text>
+    <rect
+       style="fill:#a02c2c;stroke-width:0.27678779"
+       id="rect223"
+       width="18.267332"
+       height="11.717261"
+       x="126.38635"
+       y="108.38988"
+       rx="1.676"
+       ry="1.676" />
+    <rect
+       style="fill:#a02c2c;stroke-width:0.27678779"
+       id="rect223-5"
+       width="18.267332"
+       height="11.717261"
+       x="126.38635"
+       y="124.73734"
+       rx="1.676"
+       ry="1.676" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="130.38005"
+       y="132.7832"
+       id="text221"><tspan
+         sodipodi:role="line"
+         id="tspan219"
+         x="130.38005"
+         y="132.7832"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#ffffff;stroke-width:0.26458332">CLI</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="131.99225"
+       y="116.46547"
+       id="text221-1"><tspan
+         sodipodi:role="line"
+         id="tspan219-2"
+         x="131.99225"
+         y="116.46547"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#ffffff;stroke-width:0.26458332">go</tspan></text>
+    <rect
+       style="fill:#a02c2c;stroke-width:0.27678779"
+       id="rect223-5-7"
+       width="18.267332"
+       height="11.717261"
+       x="126.38635"
+       y="141.08482"
+       rx="1.676"
+       ry="1.676" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-weight:normal;font-size:10.58333302px;line-height:1.25;font-family:sans-serif;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="130.17897"
+       y="149.3494"
+       id="text221-0"><tspan
+         sodipodi:role="line"
+         id="tspan219-9"
+         x="130.17897"
+         y="149.3494"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7.05555534px;font-family:'Ubuntu Mono';-inkscape-font-specification:'Ubuntu Mono';fill:#ffffff;stroke-width:0.26458332">lib</tspan></text>
+  </g>
+</svg>
