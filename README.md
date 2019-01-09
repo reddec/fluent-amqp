@@ -79,3 +79,10 @@ while true; do
   curl -f -X POST --data "text=$(cat message.txt)" --data "chat_id=${CHAT_ID}" "https://api.telegram.org/bot${TOKEN}/sendMessage" || exit 1
 done
 ```
+
+
+## Command line utilities
+
+* [amqp-exec](cmd/amqp-exec) - CGI like daemon to listen message and run executable (and send reply)
+* [amqp-recv](cmd/amqp-recv) - Receive message from AMQP (like `cat` command)
+* [amqp-send](cmd/amqp-send) - Send message to AMQP (like `wall` command)
