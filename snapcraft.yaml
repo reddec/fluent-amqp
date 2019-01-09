@@ -4,8 +4,8 @@ summary: AMQP utilities
 description: |
   fluent-amqp contains set of CLI tools to operate with AMQP broker
 
-grade: devel
-confinement: devmode
+grade: stable
+confinement: strict
 
 parts:
   go:
@@ -18,7 +18,13 @@ parts:
 apps:
   amqp-exec:
     command: bin/amqp-exec
+    plugs:
+      - network
   amqp-send:
     command: bin/amqp-send
+    plugs:
+      - network
   amqp-recv:
     command: bin/amqp-recv
+    plugs:
+      - network
