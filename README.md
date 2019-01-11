@@ -92,6 +92,8 @@ done
 
 ### Installation
 
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/fluent-amqp)
+
 * [snapcraft: fluent-amqp](https://snapcraft.io/fluent-amqp)
 
   after installation commands are available with `fluent-amqp.` prefixes (i.e. `fluent-amqp.amqp-exec`)
