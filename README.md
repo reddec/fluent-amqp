@@ -92,8 +92,7 @@ done
 
 ### Installation
 
-* snapcraft:
-`sudo snap install fluent-amqp`
+* [snapcraft: fluent-amqp](https://snapcraft.io/fluent-amqp)
 
   after installation commands are available with `fluent-amqp.` prefixes (i.e. `fluent-amqp.amqp-exec`)
 * [pre-build binaries](https://github.com/reddec/fluent-amqp/releases) for all major platform

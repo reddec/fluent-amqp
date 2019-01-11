@@ -10,6 +10,7 @@ description: |
   - Non-blocking processing of messages
   - Optional auto-requeue (with delay)
   - Signing and verifiying messages by public/private pair
+  Source code licensed under MIT and can be obtained via https://github.com/reddec/fluent-amqp
 
 grade: stable
 confinement: strict
