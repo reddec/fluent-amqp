@@ -186,14 +186,14 @@ func (snk *SinkConfig) Handler(obj SimpleHandler) *Server {
 func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 	snk.ManualAck()
 	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
-		snk.broker.config.logger.Println("processing", msg.MessageId, "in transaction")
+		snk.broker.config.logger.Println(snk.name, "processing", msg.MessageId, "in transaction")
 		start := time.Now()
 		err := fn(ctx, msg)
 		end := time.Now()
 		if err == nil {
-			snk.broker.config.logger.Println(msg.MessageId, "successfully processed within", end.Sub(start))
+			snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "successfully processed within", end.Sub(start))
 		} else {
-			snk.broker.config.logger.Println(msg.MessageId, "failed after", end.Sub(start), ":", err)
+			snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "failed after", end.Sub(start), ":", err)
 		}
 		if err == nil {
 			msg.Ack(false)
