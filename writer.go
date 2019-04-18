@@ -43,9 +43,13 @@ func (wc *WriterConfig) Sign(privateFile string) *WriterConfig {
 	return wc.Use(mw)
 }
 
-func (wc *WriterConfig) DefaultTopic(name string) *WriterConfig  { return wc.withExchange(name, "topic") }
-func (wc *WriterConfig) DefaultDirect(name string) *WriterConfig { return wc.withExchange(name, "direct") }
-func (wc *WriterConfig) DefaultFanout(name string) *WriterConfig { return wc.withExchange(name, "fanout") }
+func (wc *WriterConfig) DefaultTopic(name string) *WriterConfig { return wc.withExchange(name, "topic") }
+func (wc *WriterConfig) DefaultDirect(name string) *WriterConfig {
+	return wc.withExchange(name, "direct")
+}
+func (wc *WriterConfig) DefaultFanout(name string) *WriterConfig {
+	return wc.withExchange(name, "fanout")
+}
 
 func (wc *WriterConfig) DefaultKey(routingKey string) *WriterConfig {
 	wc.topic = routingKey
@@ -90,7 +94,6 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 			if pub.lastMsg.try != nil {
 				pub.lastMsg.try <- err
 				close(pub.lastMsg.try)
-				pub.lastMsg = nil
 			}
 			if err != nil {
 				return err
