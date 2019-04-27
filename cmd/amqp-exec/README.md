@@ -43,6 +43,7 @@ Application Options:
   -l, --lazy                                    Make queue lazy (prefer keep data on disk) [$BROKER_LAZY]
   -R, --reconnect-interval=                     Reconnect timeout (default: 5s) [$BROKER_RECONNECT_INTERVAL]
       --retry-limit=                            Number of retries (-1 is infinite) (default: -1) [$RETRY_LIMIT]
+      --retry-interval=                         Delay between attempts (default: 5s) [$RETRY_INTERVAL]
   -T, --timeout=                                Connect timeout (default: 30s) [$BROKER_CONNECT_TIMEOUT]
   -q, --quiet                                   Suppress all log messages [$BROKER_QUIET]
   -v, --version                                 Print version and exit

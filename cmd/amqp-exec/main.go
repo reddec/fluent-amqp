@@ -29,6 +29,7 @@ var config struct {
 	Lazy            bool          `short:"l" long:"lazy"               env:"BROKER_LAZY"        description:"Make queue lazy (prefer keep data on disk)"`
 	Interval        time.Duration `short:"R" long:"reconnect-interval" env:"BROKER_RECONNECT_INTERVAL" description:"Reconnect timeout" default:"5s"`
 	RetryLimit      int           `long:"retry-limit" env:"RETRY_LIMIT" description:"Number of retries (-1 is infinite)" default:"-1"`
+	RetryInterval   time.Duration `long:"retry-interval" env:"RETRY_INTERVAL" description:"Delay between attempts" default:"5s"`
 	Timeout         time.Duration `short:"T" long:"timeout" env:"BROKER_CONNECT_TIMEOUT" description:"Connect timeout" default:"30s"`
 	Quiet           bool          `short:"q" long:"quiet" env:"BROKER_QUIET" description:"Suppress all log messages"`
 	Version         bool          `short:"v" long:"version" description:"Print version and exit"`
@@ -51,7 +52,7 @@ func run() error {
 	defer broker.WaitToFinish()
 	defer cancel()
 	log.Println("preparing sink")
-	consumerConfig := broker.Sink(config.Queue).Retries(config.RetryLimit)
+	consumerConfig := broker.Sink(config.Queue).Retries(config.RetryLimit).Requeue(config.RetryInterval)
 	if config.Verify != "" {
 		log.Println("preparing validator")
 		consumerConfig = consumerConfig.Validate(config.Verify)
