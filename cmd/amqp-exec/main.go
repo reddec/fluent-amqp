@@ -37,6 +37,7 @@ var config struct {
 	PubExchange     string        `short:"E" long:"pub-exchange" env:"PUB_EXCHANGE" description:"Default publishing exchange"`
 	PubExchangeType string        `short:"K" long:"pub-exchange-type" env:"PUB_EXCHANGE_TYPE" description:"Default publishing exchange type" choice:"direct" choice:"topic" choice:"fanout" default:"direct"`
 	PubKey          string        `short:"U" long:"pub-key" env:"PUB_KEY" description:"Default publishing key"`
+	PubEmpty        bool          `long:"pub-empty" env:"PUB_EMPTY" description:"Allow publish empty messages"`
 	Args            struct {
 		App    string   `positional-arg-name:"application" env:"APP" description:"Application executable" required:"yes"`
 		Params []string `positional-arg-name:"params" env:"PARAMS" env-delim:" "  description:"Application executable params"`
@@ -96,10 +97,10 @@ func run() error {
 		}
 		exchange = exchange.Key(config.RoutingKey...)
 
-		exchange.TransactFunc(makeHandler(publisher, autoReply))
+		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty))
 	} else {
 		// direct consuming without binding to exchange
-		consumerConfig.TransactFunc(makeHandler(publisher, autoReply))
+		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty))
 	}
 	log.Println("reader prepared")
 	log.Println("waiting for messages...")
@@ -107,11 +108,15 @@ func run() error {
 	return nil
 }
 
-func makeHandler(publisher *fluent.Writer, autoReply bool) fluent.TransactionHandlerFunc {
+func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool) fluent.TransactionHandlerFunc {
 	return func(ctx context.Context, msg amqp.Delivery) error {
 		data, err := runApplication(ctx, &msg)
 		if err != nil {
 			return err
+		}
+		if len(data) == 0 && !emptyPublish {
+			// skip empty data
+			return nil
 		}
 		if msg.ReplyTo != "" {
 			return publisher.Reply(&msg).Bytes(data).PublishWait(ctx)
