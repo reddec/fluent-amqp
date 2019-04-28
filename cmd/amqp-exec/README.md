@@ -51,11 +51,16 @@ Application Options:
   -E, --pub-exchange=                           Default publishing exchange [$PUB_EXCHANGE]
   -K, --pub-exchange-type=[direct|topic|fanout] Default publishing exchange type (default: direct) [$PUB_EXCHANGE_TYPE]
   -U, --pub-key=                                Default publishing key [$PUB_KEY]
+      --pub-empty                               Allow publish empty messages [$PUB_EMPTY]
+  -H, --pub-header=                             Custom headers that should be added to the output message [$PUB_HEADER]
+  -M, --multiline                               Use each line of output as single message [$MULTILINE]
 
 Help Options:
   -h, --help                                    Show this help message
 
 ```
+
+Additional headers should be defined in format: `KEY1:VALUE1,KEY2:VALUE2` and so on.
 
 Example:
 
