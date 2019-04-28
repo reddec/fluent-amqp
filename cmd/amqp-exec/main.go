@@ -40,6 +40,7 @@ var config struct {
 	PubKey          string            `short:"U" long:"pub-key" env:"PUB_KEY" description:"Default publishing key"`
 	PubEmpty        bool              `long:"pub-empty" env:"PUB_EMPTY" description:"Allow publish empty messages"`
 	PubHeader       map[string]string `short:"H" long:"pub-header" env:"PUB_HEADER" env-delim:"," description:"Custom headers that should be added to the output message"`
+	ExportEnv       []string          `long:"export-env" env-delim:","  env:"EXPORT_ENV" description:"Add environment variables to headers of the output message"`
 	Multiline       bool              `short:"M" long:"multiline" env:"MULTILINE" description:"Use each line of output as single message"`
 	Args            struct {
 		App    string   `positional-arg-name:"application" env:"APP" description:"Application executable" required:"yes"`
@@ -100,10 +101,10 @@ func run() error {
 		}
 		exchange = exchange.Key(config.RoutingKey...)
 
-		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader))
+		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader, config.ExportEnv))
 	} else {
 		// direct consuming without binding to exchange
-		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader))
+		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader, config.ExportEnv))
 	}
 	log.Println("reader prepared")
 	log.Println("waiting for messages...")
@@ -111,8 +112,8 @@ func run() error {
 	return nil
 }
 
-func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool, multiLine bool, headers map[string]string) fluent.TransactionHandlerFunc {
-	h := &handler{multiLine: multiLine, emptyPublish: emptyPublish, publisher: publisher, autoReply: autoReply, headers: headers}
+func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool, multiLine bool, headers map[string]string, exportEnv []string) fluent.TransactionHandlerFunc {
+	h := &handler{multiLine: multiLine, emptyPublish: emptyPublish, publisher: publisher, autoReply: autoReply, headers: headers, exportEnv: exportEnv}
 	return h.Handle
 }
 
@@ -120,6 +121,7 @@ type handler struct {
 	autoReply    bool
 	emptyPublish bool
 	multiLine    bool
+	exportEnv    []string
 	headers      map[string]string
 	publisher    *fluent.Writer
 }
@@ -138,6 +140,9 @@ func (h *handler) send(ctx context.Context, msg *amqp.Delivery, data []byte) err
 	if out != nil {
 		for k, v := range h.headers {
 			out = out.Header(k, v)
+		}
+		for _, name := range h.exportEnv {
+			out = out.Header(name, os.Getenv(name))
 		}
 		return out.PublishWait(ctx)
 	}
