@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"fmt"
@@ -38,6 +39,7 @@ var config struct {
 	PubExchangeType string        `short:"K" long:"pub-exchange-type" env:"PUB_EXCHANGE_TYPE" description:"Default publishing exchange type" choice:"direct" choice:"topic" choice:"fanout" default:"direct"`
 	PubKey          string        `short:"U" long:"pub-key" env:"PUB_KEY" description:"Default publishing key"`
 	PubEmpty        bool          `long:"pub-empty" env:"PUB_EMPTY" description:"Allow publish empty messages"`
+	Multiline       bool          `short:"M" long:"multiline" env:"MULTILINE" description:"Use each line of output as single message"`
 	Args            struct {
 		App    string   `positional-arg-name:"application" env:"APP" description:"Application executable" required:"yes"`
 		Params []string `positional-arg-name:"params" env:"PARAMS" env-delim:" "  description:"Application executable params"`
@@ -97,10 +99,10 @@ func run() error {
 		}
 		exchange = exchange.Key(config.RoutingKey...)
 
-		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty))
+		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline))
 	} else {
 		// direct consuming without binding to exchange
-		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty))
+		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline))
 	}
 	log.Println("reader prepared")
 	log.Println("waiting for messages...")
@@ -108,23 +110,52 @@ func run() error {
 	return nil
 }
 
-func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool) fluent.TransactionHandlerFunc {
-	return func(ctx context.Context, msg amqp.Delivery) error {
+func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool, multiLine bool) fluent.TransactionHandlerFunc {
+	h := &handler{multiLine: multiLine, emptyPublish: emptyPublish, publisher: publisher, autoReply: autoReply}
+	return h.Handle
+}
+
+type handler struct {
+	autoReply    bool
+	emptyPublish bool
+	multiLine    bool
+	publisher    *fluent.Writer
+}
+
+func (h *handler) send(ctx context.Context, msg *amqp.Delivery, data []byte) error {
+	if len(data) == 0 && !h.emptyPublish {
+		// skip empty data
+		return nil
+	}
+	if msg.ReplyTo != "" {
+		return h.publisher.Reply(msg).Bytes(data).PublishWait(ctx)
+	} else if h.autoReply {
+		return h.publisher.Prepare().Bytes(data).PublishWait(ctx)
+	}
+	return nil
+}
+
+func (h *handler) Handle(ctx context.Context, msg amqp.Delivery) error {
+	if h.multiLine {
+		scanner, err := runMultiLineApplication(ctx, &msg)
+		if err != nil {
+			return err
+		}
+		for scanner.Scan() {
+			data := scanner.Bytes()
+			err = h.send(ctx, &msg, data)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
 		data, err := runApplication(ctx, &msg)
 		if err != nil {
 			return err
 		}
-		if len(data) == 0 && !emptyPublish {
-			// skip empty data
-			return nil
-		}
-		if msg.ReplyTo != "" {
-			return publisher.Reply(&msg).Bytes(data).PublishWait(ctx)
-		} else if autoReply {
-			return publisher.Prepare().Bytes(data).PublishWait(ctx)
-		}
-		return nil
+		return h.send(ctx, &msg, data)
 	}
+	return nil
 }
 
 func main() {
@@ -150,6 +181,43 @@ func main() {
 }
 
 func runApplication(ctx context.Context, msg *amqp.Delivery) ([]byte, error) {
+	cmd := makeCmd(ctx, msg)
+	buffer := &bytes.Buffer{}
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = io.MultiWriter(buffer, os.Stdout)
+	cmd.Stdin = bytes.NewBuffer(msg.Body)
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+func runMultiLineApplication(ctx context.Context, msg *amqp.Delivery) (*bufio.Scanner, error) {
+	cmd := makeCmd(ctx, msg)
+
+	r, w := io.Pipe()
+	lineScanner := bufio.NewScanner(r)
+
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = io.MultiWriter(w, os.Stdout)
+	cmd.Stdin = bytes.NewBuffer(msg.Body)
+	err := cmd.Start()
+	if err != nil {
+		r.Close()
+		w.Close()
+		return nil, err
+	}
+
+	go func() {
+		cmd.Wait()
+		r.Close()
+		w.Close()
+	}()
+	return lineScanner, nil
+}
+
+func makeCmd(ctx context.Context, msg *amqp.Delivery) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, config.Args.App, config.Args.Params...)
 	cmd.Env = append(cmd.Env,
 		"MESSAGE_ID="+msg.MessageId,
@@ -162,13 +230,5 @@ func runApplication(ctx context.Context, msg *amqp.Delivery) ([]byte, error) {
 	for name, value := range msg.Headers {
 		cmd.Env = append(cmd.Env, name+"="+fmt.Sprint(value))
 	}
-	buffer := &bytes.Buffer{}
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = io.MultiWriter(buffer, os.Stdout)
-	cmd.Stdin = bytes.NewBuffer(msg.Body)
-	err := cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-	return buffer.Bytes(), nil
+	return cmd
 }
