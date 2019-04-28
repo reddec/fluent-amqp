@@ -233,6 +233,7 @@ func runMultiLineApplication(ctx context.Context, msg *amqp.Delivery) (*bufio.Sc
 
 func makeCmd(ctx context.Context, msg *amqp.Delivery) *exec.Cmd {
 	cmd := exec.CommandContext(ctx, config.Args.App, config.Args.Params...)
+	cmd.Env = os.Environ() // copy base
 	cmd.Env = append(cmd.Env,
 		"MESSAGE_ID="+msg.MessageId,
 		"MESSAGE_TYPE="+msg.Type,
