@@ -40,6 +40,7 @@ var config struct {
 	PubKey          string            `short:"U" long:"pub-key" env:"PUB_KEY" description:"Default publishing key"`
 	PubEmpty        bool              `long:"pub-empty" env:"PUB_EMPTY" description:"Allow publish empty messages"`
 	PubHeader       map[string]string `short:"H" long:"pub-header" env:"PUB_HEADER" env-delim:"," description:"Custom headers that should be added to the output message"`
+	CopyMessageText string            `long:"copy-message-text" env:"COPY_MESSAGE_TEXT" description:"Copy input message to output header as a string"`
 	ExportEnv       []string          `long:"export-env" env-delim:","  env:"EXPORT_ENV" description:"Add environment variables to headers of the output message"`
 	Multiline       bool              `short:"M" long:"multiline" env:"MULTILINE" description:"Use each line of output as single message"`
 	Args            struct {
@@ -88,6 +89,16 @@ func run() error {
 		publisher = broker.Publisher().Create()
 	}
 
+	handler := &handler{
+		multiLine:    config.Multiline,
+		emptyPublish: config.PubEmpty,
+		publisher:    publisher,
+		autoReply:    autoReply,
+		headers:      config.PubHeader,
+		exportEnv:    config.ExportEnv,
+		copyText:     config.CopyMessageText,
+	}
+
 	if config.Exchange != "" {
 		switch config.ExchangeType {
 		case "topic":
@@ -101,10 +112,10 @@ func run() error {
 		}
 		exchange = exchange.Key(config.RoutingKey...)
 
-		exchange.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader, config.ExportEnv))
+		exchange.Transact(handler)
 	} else {
 		// direct consuming without binding to exchange
-		consumerConfig.TransactFunc(makeHandler(publisher, autoReply, config.PubEmpty, config.Multiline, config.PubHeader, config.ExportEnv))
+		consumerConfig.Transact(handler)
 	}
 	log.Println("reader prepared")
 	log.Println("waiting for messages...")
@@ -112,15 +123,11 @@ func run() error {
 	return nil
 }
 
-func makeHandler(publisher *fluent.Writer, autoReply, emptyPublish bool, multiLine bool, headers map[string]string, exportEnv []string) fluent.TransactionHandlerFunc {
-	h := &handler{multiLine: multiLine, emptyPublish: emptyPublish, publisher: publisher, autoReply: autoReply, headers: headers, exportEnv: exportEnv}
-	return h.Handle
-}
-
 type handler struct {
 	autoReply    bool
 	emptyPublish bool
 	multiLine    bool
+	copyText     string
 	exportEnv    []string
 	headers      map[string]string
 	publisher    *fluent.Writer
@@ -131,13 +138,18 @@ func (h *handler) send(ctx context.Context, msg *amqp.Delivery, data []byte) err
 		// skip empty data
 		return nil
 	}
+
 	var out *fluent.Message
 	if msg.ReplyTo != "" {
 		out = h.publisher.Reply(msg).Bytes(data)
 	} else if h.autoReply {
 		out = h.publisher.Prepare().Bytes(data)
 	}
+
 	if out != nil {
+		if h.copyText != "" {
+			out.Header(h.copyText, string(msg.Body))
+		}
 		for k, v := range h.headers {
 			out = out.Header(k, v)
 		}
