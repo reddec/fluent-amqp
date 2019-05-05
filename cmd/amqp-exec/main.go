@@ -147,6 +147,7 @@ func (h *handler) send(ctx context.Context, msg *amqp.Delivery, data []byte) err
 	}
 
 	if out != nil {
+		log.Println("outgoing message:", string(data))
 		if h.copyText != "" {
 			out.Header(h.copyText, string(msg.Body))
 		}
@@ -162,6 +163,7 @@ func (h *handler) send(ctx context.Context, msg *amqp.Delivery, data []byte) err
 }
 
 func (h *handler) Handle(ctx context.Context, msg amqp.Delivery) error {
+	log.Println("incoming message:", string(msg.Body))
 	if h.multiLine {
 		scanner, err := runMultiLineApplication(ctx, &msg)
 		if err != nil {
