@@ -140,6 +140,10 @@ func (snk *SinkConfig) DeadLetter(exchange, routingKey string) *SinkConfig {
 	return snk.deadLetterExchange(exchange).deadLetterQueue(routingKey)
 }
 
+func (snk *SinkConfig) KeepDead() *SinkConfig {
+	return snk.DeadLetter("", snk.queueName+"/dead")
+}
+
 func (snk *SinkConfig) Attr(name string, value interface{}) *SinkConfig {
 	if snk.attrs == nil {
 		snk.attrs = make(amqp.Table)
