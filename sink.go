@@ -118,13 +118,23 @@ func (snk *SinkConfig) Validate(certFile string) *SinkConfig {
 }
 
 func (snk *SinkConfig) deadLetterQueue(name string) *SinkConfig {
+	const attrName = "x-dead-letter-routing-key"
 	snk.deadQueue = name
-	return snk.Attr("x-dead-letter-routing-key", name)
+	if name == "" {
+		delete(snk.attrs, attrName)
+		return snk
+	}
+	return snk.Attr(attrName, name)
 }
 
 func (snk *SinkConfig) deadLetterExchange(name string) *SinkConfig {
+	const attrName = "x-dead-letter-exchange"
 	snk.deadExchange = name
-	return snk.Attr("x-dead-letter-exchange", name)
+	if name == "" {
+		delete(snk.attrs, attrName)
+		return snk
+	}
+	return snk.Attr(attrName, name)
 }
 
 func (snk *SinkConfig) Lazy() *SinkConfig {
