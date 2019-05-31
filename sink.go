@@ -151,7 +151,7 @@ func (snk *SinkConfig) DeadLetter(exchange, routingKey string) *SinkConfig {
 }
 
 func (snk *SinkConfig) KeepDead() *SinkConfig {
-	return snk.DeadLetter("", snk.queueName+"/dead")
+	return snk.DeadLetter("dead.messages", snk.queueName+"/dead")
 }
 
 func (snk *SinkConfig) Attr(name string, value interface{}) *SinkConfig {
