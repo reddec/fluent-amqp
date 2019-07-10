@@ -274,7 +274,7 @@ type sink struct {
 
 func (s *sink) ChannelReady(ctx context.Context, ch *amqp.Channel) error {
 	if s.config.deadExchange != "" {
-		if err := ch.ExchangeDeclare(s.config.deadExchange, "fanout", true, false, false, false, nil); err != nil {
+		if err := ch.ExchangeDeclare(s.config.deadExchange, "direct", true, false, false, false, nil); err != nil {
 			return err
 		}
 	}
