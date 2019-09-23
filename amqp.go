@@ -143,7 +143,8 @@ func (brk *Server) loadHandler(conn *amqp.Connection, childContext context.Conte
 func (brk *Server) runHandler(ctx context.Context, conn *amqp.Connection, handler StateHandler) error {
 	ch, err := conn.Channel()
 	if err != nil {
-		brk.config.logger.Println("failed open channel:", err)
+		stringErr := fmt.Sprintf("%s", err)
+		brk.config.logger.Println("failed open channel:", maskPassword.ReplaceAllString(stringErr, "***@"))
 		return err
 	}
 	defer ch.Close()
