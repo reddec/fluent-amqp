@@ -2,6 +2,7 @@ package fluent
 
 import (
 	"context"
+	"fmt"
 	"github.com/streadway/amqp"
 	"net"
 	"regexp"
@@ -86,7 +87,8 @@ func (brk *Server) serve() error {
 			},
 		})
 		if err != nil {
-			brk.config.logger.Println("connection error:", err)
+			stringErr := fmt.Sprintf("%s", err)
+			brk.config.logger.Println("connection error:", maskPassword.ReplaceAllString(stringErr, "***@"))
 		} else {
 			brk.config.logger.Println("successfully connected to", maskPassword.ReplaceAllString(url, "***@"))
 			brk.processConnection(conn)
