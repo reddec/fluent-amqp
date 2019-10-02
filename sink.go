@@ -9,13 +9,13 @@ import (
 )
 
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
-type TransactionHandlerFunc func(ctx context.Context, msg amqp.Delivery) (error)
+type TransactionHandlerFunc func(ctx context.Context, msg amqp.Delivery) error
 
 // Handler for messages that reached retries amount. False return means request to drop message
 type SinkExpiredHandlerFunc func(ctx context.Context, msg amqp.Delivery, retries int64) bool
 
 type TransactionHandler interface {
-	Handle(ctx context.Context, msg amqp.Delivery) (error)
+	Handle(ctx context.Context, msg amqp.Delivery) error
 }
 
 type SimpleHandler interface {
@@ -38,6 +38,7 @@ type SinkConfig struct {
 	middleware             []ReceiverHandler
 	broker                 *Server
 	autoAck                bool
+	verboseLogging         bool
 	deadQueue              string
 	deadExchange           string
 	attrs                  amqp.Table
@@ -54,10 +55,11 @@ type SinkConfig struct {
 
 func newSink(queue string, broker *Server) *SinkConfig {
 	snk := &SinkConfig{
-		queueName: queue,
-		broker:    broker,
-		autoAck:   true,
-		retries:   broker.config.defaultSink.retries,
+		queueName:      queue,
+		broker:         broker,
+		autoAck:        true,
+		retries:        broker.config.defaultSink.retries,
+		verboseLogging: broker.config.verboseLogging,
 	}
 	if broker.config.defaultSink.expiredMessagesHandler != nil {
 		snk = snk.OnExpired(func(ctx context.Context, msg amqp.Delivery, retries int64) bool {
@@ -101,6 +103,11 @@ func (snk *SinkConfig) Requeue(interval time.Duration) *SinkConfig {
 
 func (snk *SinkConfig) ManualAck() *SinkConfig {
 	snk.autoAck = false
+	return snk
+}
+
+func (snk *SinkConfig) Verbose(verbose bool) *SinkConfig {
+	snk.verboseLogging = verbose
 	return snk
 }
 
@@ -200,12 +207,16 @@ func (snk *SinkConfig) Handler(obj SimpleHandler) *Server {
 func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 	snk.ManualAck()
 	return snk.HandlerFunc(func(ctx context.Context, msg amqp.Delivery) {
-		snk.broker.config.logger.Println(snk.name, "processing", msg.MessageId, "in transaction")
+		if snk.verboseLogging {
+			snk.broker.config.logger.Println(snk.name, "processing", msg.MessageId, "in transaction")
+		}
 		start := time.Now()
 		err := fn(ctx, msg)
 		end := time.Now()
 		if err == nil {
-			snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "successfully processed within", end.Sub(start))
+			if snk.verboseLogging {
+				snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "successfully processed within", end.Sub(start))
+			}
 		} else {
 			snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "failed after", end.Sub(start), ":", err)
 		}

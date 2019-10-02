@@ -26,6 +26,7 @@ type BrokerConfig struct {
 	connectTimeout    time.Duration
 	ctx               context.Context
 	logger            Logger
+	verboseLogging    bool
 }
 
 func Broker(urls ...string) *BrokerConfig {
@@ -35,6 +36,7 @@ func Broker(urls ...string) *BrokerConfig {
 		connectTimeout:    20 * time.Second,
 		ctx:               context.Background(),
 		logger:            log.New(ioutil.Discard, "", 0),
+		verboseLogging:    true,
 	}
 	cfg.defaultSink.retries = 10
 	return cfg
@@ -52,6 +54,11 @@ func (bc *BrokerConfig) Timeout(tm time.Duration) *BrokerConfig {
 
 func (bc *BrokerConfig) Logger(logger Logger) *BrokerConfig {
 	bc.logger = logger
+	return bc
+}
+
+func (bc *BrokerConfig) Verbose(verbose bool) *BrokerConfig {
+	bc.verboseLogging = verbose
 	return bc
 }
 
