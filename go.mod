@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v0.0.0-20161128191214-064e2069ce9c
 	github.com/huandu/xstrings v1.1.0
 	github.com/imdario/mergo v0.3.6
-	github.com/jessevdk/go-flags v1.4.0
+	github.com/jessevdk/go-flags v1.4.1-0.20181221193153-c0795c8afcf4
 	github.com/pkg/errors v0.8.0
 	github.com/streadway/amqp v0.0.0-20180806233856-70e15c650864
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
