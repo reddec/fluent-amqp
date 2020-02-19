@@ -1,11 +1,13 @@
 package fluent
 
 import (
-	"time"
-	"github.com/streadway/amqp"
 	"context"
+	"github.com/streadway/amqp"
 	"strconv"
+	"time"
 )
+
+const LastErrorHeader = "x-fluent-amqp-last-message-error"
 
 type ReQueueConfig struct {
 	queueName   string
@@ -56,6 +58,7 @@ type requeue struct {
 
 type Requeue interface {
 	Requeue(original *amqp.Delivery) error
+	RequeueWithError(original *amqp.Delivery, err error) error
 }
 
 func (s *requeue) ChannelReady(ctx context.Context, ch *amqp.Channel) error {
@@ -110,4 +113,11 @@ func (s *requeue) Requeue(original *amqp.Delivery) error {
 			return err
 		}
 	}
+}
+
+func (s *requeue) RequeueWithError(original *amqp.Delivery, err error) error {
+	if err != nil {
+		original.Headers[LastErrorHeader] = err.Error()
+	}
+	return s.Requeue(original)
 }
