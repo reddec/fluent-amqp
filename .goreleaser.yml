@@ -1,22 +1,90 @@
 # This is an example goreleaser.yaml file with some sane defaults.
 # Make sure to check the documentation at http://goreleaser.com
+project_name: fluent-amqp
 builds:
 - binary: amqp-send
+  id: amqp-send
   main: cmd/amqp-send/main.go
-  goos:
-  - windows
-  - darwin
-  - linux
+  env:
+  - CGO_ENABLED=0
   goarch:
-  - amd64
-  - 386
-  - arm64
-archive:
-  format: tar.gz
-nfpm:
-  homepage: https://github.com/reddec/fluent-amqp
-  description: Library for fluent AMQP connections on Go
-  maintainer: RedDec <owner@reddec.net>
-  license: MIT
-  formats:
-  - deb
+    - amd64
+    - arm
+    - arm64
+  goarm:
+    - 5
+    - 6
+    - 7
+  goos:
+    - linux
+    - windows
+    - darwin
+    - freebsd
+  flags:
+    - -trimpath
+- binary: amqp-exec
+  id: amqp-exec
+  main: cmd/amqp-exec/main.go
+  env:
+    - CGO_ENABLED=0
+  goarch:
+    - amd64
+    - arm
+    - arm64
+  goarm:
+    - 5
+    - 6
+    - 7
+  goos:
+    - linux
+    - windows
+    - darwin
+    - freebsd
+  flags:
+    - -trimpath
+- binary: amqp-recv
+  id: amqp-recv
+  main: cmd/amqp-exec/main.go
+  env:
+    - CGO_ENABLED=0
+  goarch:
+    - amd64
+    - arm
+    - arm64
+  goarm:
+    - 5
+    - 6
+    - 7
+  goos:
+    - linux
+    - windows
+    - darwin
+    - freebsd
+  flags:
+    - -trimpath
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    files:
+      - LICENSE
+      - README.md
+    format: tar.gz
+nfpms:
+  - name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+    homepage: https://github.com/reddec/fluent-amqp
+    description: Library for fluent AMQP connections on Go
+    maintainer: RedDec <owner@reddec.net>
+    license: MIT
+    formats:
+    - deb
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^doc:'
+      - '^test:'
+      - '^build:'
