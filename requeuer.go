@@ -117,6 +117,9 @@ func (s *requeue) Requeue(original *amqp.Delivery) error {
 
 func (s *requeue) RequeueWithError(original *amqp.Delivery, err error) error {
 	if err != nil {
+		if original.Headers == nil {
+			original.Headers = make(amqp.Table)
+		}
 		original.Headers[LastErrorHeader] = err.Error()
 	}
 	return s.Requeue(original)
