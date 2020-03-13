@@ -24,11 +24,12 @@ func TestMessageQueue_Get(t *testing.T) {
 	background, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	for {
-		_, err := queue.Get(background)
+		_, err := queue.Peek(background)
 		if err != nil {
 			break
 		}
 		num++
+		queue.Commit()
 	}
 	wg.Wait()
 	if num != 1000 {
