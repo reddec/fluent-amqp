@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/pkg/errors"
+	"github.com/reddec/fluent-amqp/internal"
 	"github.com/streadway/amqp"
 	"strconv"
 	"time"
@@ -59,7 +60,6 @@ func (wc *WriterConfig) DefaultKey(routingKey string) *WriterConfig {
 func (wc *WriterConfig) Create() *Writer {
 	pub := &publisher{
 		config: *wc,
-		stream: make(chan msg),
 	}
 	wc.broker.handle(pub)
 	return &Writer{
@@ -68,18 +68,9 @@ func (wc *WriterConfig) Create() *Writer {
 	}
 }
 
-type msg struct {
-	exchange string
-	key      string
-	msg      amqp.Publishing
-	try      chan error
-	done     chan struct{}
-}
-
 type publisher struct {
-	config  WriterConfig
-	stream  chan msg
-	lastMsg *msg
+	config WriterConfig
+	stream internal.MessageQueue
 }
 
 func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error {
@@ -89,26 +80,22 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 		}
 	}
 	for {
-		if pub.lastMsg != nil {
-			err := ch.Publish(pub.lastMsg.exchange, pub.lastMsg.key, false, false, pub.lastMsg.msg)
-			if pub.lastMsg.try != nil {
-				pub.lastMsg.try <- err
-				close(pub.lastMsg.try)
-			}
-			if err != nil {
-				return err
-			}
-			if pub.lastMsg.done != nil {
-				close(pub.lastMsg.done)
-			}
-			pub.lastMsg = nil
+		msg, err := pub.stream.Peek(ctx)
+		if err != nil {
+			return err
 		}
-		select {
-		case msg := <-pub.stream:
-			pub.lastMsg = &msg
-		case <-ctx.Done():
-			return ctx.Err()
+		err = ch.Publish(msg.Exchange, msg.Key, false, false, msg.Msg)
+		if msg.Try != nil {
+			msg.Try <- err
+			close(msg.Try)
 		}
+		if err != nil {
+			return err
+		}
+		if msg.Done != nil {
+			close(msg.Done)
+		}
+		pub.stream.Commit()
 	}
 
 }
@@ -234,22 +221,14 @@ func (msg *Message) TTL(tm time.Duration) *Message {
 
 func (ms *Message) Publish(ctx context.Context) (<-chan struct{}, error) {
 	done := make(chan struct{})
-	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange, done: done}
-	if !ms.processMessage(&m.msg) {
+	m := &internal.Message{Msg: ms.msg, Key: ms.key, Exchange: ms.exchange, Done: done}
+	if !ms.processMessage(&m.Msg) {
 		close(done)
 		return done, errors.New("rejected by middleware")
 	}
 
-	select {
-	case <-ctx.Done():
-		close(done)
-		return done, ctx.Err()
-	case ms.writer.pub.stream <- m:
-		return done, nil
-	case <-ms.writer.ctx.Done():
-		close(done)
-		return done, ms.writer.ctx.Err()
-	}
+	ms.writer.pub.stream.Put(m)
+	return m.Done, nil
 }
 
 func (ms *Message) PublishWait(ctx context.Context) error {
@@ -277,19 +256,20 @@ func (ms *Message) Send() <-chan struct{} {
 
 func (ms *Message) TrySend() error {
 	t := make(chan error, 1)
-	m := msg{msg: ms.msg, key: ms.key, exchange: ms.exchange, try: t}
-	if !ms.processMessage(&m.msg) {
+	m := &internal.Message{Msg: ms.msg, Key: ms.key, Exchange: ms.exchange, Try: t}
+	if !ms.processMessage(&m.Msg) {
 		return nil
 	}
+	ms.writer.pub.stream.Put(m)
 	select {
-	case ms.writer.pub.stream <- m:
-		return <-t
+	case err := <-t:
+		return err
 	case <-ms.writer.ctx.Done():
 		return ms.writer.ctx.Err()
 	}
 }
 
-func (ms *Message) processMessage(msg *amqp.Publishing) (bool) {
+func (ms *Message) processMessage(msg *amqp.Publishing) bool {
 	for _, handle := range ms.writer.pub.config.middleware {
 		ok := handle.Handle(msg)
 		if !ok {
