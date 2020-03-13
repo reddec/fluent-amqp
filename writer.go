@@ -18,6 +18,10 @@ type WriterConfig struct {
 	middleware []SenderHandler
 	topic      string
 	broker     *Server
+	overflow   struct {
+		MaxSize int
+		Handler func(size int)
+	}
 }
 
 func newWriter(broker *Server) *WriterConfig {
@@ -57,6 +61,12 @@ func (wc *WriterConfig) DefaultKey(routingKey string) *WriterConfig {
 	return wc
 }
 
+func (wc *WriterConfig) Overflow(maxQueueSize int, handler func(int)) *WriterConfig {
+	wc.overflow.Handler = handler
+	wc.overflow.MaxSize = maxQueueSize
+	return wc
+}
+
 func (wc *WriterConfig) Create() *Writer {
 	pub := &publisher{
 		config: *wc,
@@ -79,7 +89,15 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 			return err
 		}
 	}
+	var overflow bool
 	for {
+		n := pub.stream.Len()
+		if n < pub.config.overflow.MaxSize {
+			overflow = false
+		} else if !overflow && pub.config.overflow.Handler != nil {
+			overflow = true
+			pub.config.overflow.Handler(n)
+		}
 		msg, err := pub.stream.Peek(ctx)
 		if err != nil {
 			return err

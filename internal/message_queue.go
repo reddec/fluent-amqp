@@ -8,21 +8,26 @@ import (
 
 // Internal cache for outgoing message (as a workaround for unlimited channels)
 type MessageQueue struct {
-	lock     sync.Mutex
-	messages list.List
+	lock     sync.RWMutex
+	messages *list.List
 	notify   chan struct{}
+}
+
+// Len of message buffer
+func (q *MessageQueue) Len() int {
+	q.initOnce()
+	q.lock.RLock()
+	defer q.lock.RUnlock()
+	return q.messages.Len()
 }
 
 // Get a single message (but not remove) or return an error if context canceled
 func (q *MessageQueue) Peek(ctx context.Context) (*Message, error) {
 	q.initOnce()
 	for {
-		q.lock.Lock()
+		q.lock.RLock()
 		elem := q.messages.Front()
-		if elem != nil {
-			q.messages.Remove(elem)
-		}
-		q.lock.Unlock()
+		q.lock.RUnlock()
 		if elem != nil {
 			return elem.Value.(*Message), nil
 		}
@@ -68,4 +73,5 @@ func (q *MessageQueue) initOnce() {
 		return
 	}
 	q.notify = make(chan struct{}, 1)
+	q.messages = list.New()
 }
