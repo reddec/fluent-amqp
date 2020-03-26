@@ -65,6 +65,7 @@ func (brk *Server) WaitToFinish() {
 
 func (brk *Server) start() error {
 	defer close(brk.done)
+	brk.onReady()
 	for {
 		if err := brk.onIdle(); err != nil {
 			return err
