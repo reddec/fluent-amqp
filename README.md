@@ -8,6 +8,8 @@
 [![Snap Status](https://build.snapcraft.io/badge/reddec/fluent-amqp.svg)](https://build.snapcraft.io/user/reddec/fluent-amqp)
 [![donate](https://img.shields.io/badge/help_by️-donate❤-ff69b4)](http://reddec.net/about/#donate)
 [![](https://godoc.org/github.com/reddec/fluent-amqp?status.svg)](https://godoc.org/github.com/reddec/fluent-amqp)
+[![Download](https://api.bintray.com/packages/reddec/debian/fluent-amqp/images/download.svg)](https://bintray.com/reddec/debian/fluent-amqp/_latestVersion)
+
 
 Library that provides fluent and easy wrapper over [streadway-amqp](https://github.com/streadway/amqp) API.
 Adds such features like:
@@ -102,3 +104,10 @@ done
 
   after installation commands are available with `fluent-amqp.` prefixes (i.e. `fluent-amqp.amqp-exec`)
 * [pre-build binaries](https://github.com/reddec/fluent-amqp/releases) for all major platform
+
+* From bintray repository for most **debian**-based distribution (`trusty`, `xenial`, `bionic`, `buster`, `wheezy`):
+```bash
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 379CE192D401AB61
+echo "deb https://dl.bintray.com/reddec/debian {distribution} main" | sudo tee -a /etc/apt/sources.list
+sudo apt install amqp-send amqp-exec amqp-recv
+```
