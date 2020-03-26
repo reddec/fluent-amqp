@@ -36,6 +36,10 @@ SIGN_HEADER_BODY = SIGN_SHA512(PRIVATE_KEY, DATA)
 ```
 
 
+## States
+
+![image](https://user-images.githubusercontent.com/6597086/77630218-9e932b80-6f85-11ea-8c10-eecf57920cd9.png)
+
 ## Default message
 
 Message by default has:

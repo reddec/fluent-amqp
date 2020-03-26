@@ -63,16 +63,99 @@ func (brk *Server) WaitToFinish() {
 	<-brk.done
 }
 
-func (brk *Server) nextURL() string {
-	u := brk.config.urls[brk.urlIndex]
-	brk.urlIndex = (brk.urlIndex + 1) % len(brk.config.urls)
-	return u
-}
-
-func (brk *Server) serve() error {
+func (brk *Server) start() error {
 	defer close(brk.done)
 	for {
-		url := brk.nextURL()
+		if err := brk.onIdle(); err != nil {
+			return err
+		}
+	}
+}
+
+// IDLE - wait before next circle, returns error if context closed. Can cause READY state
+func (brk *Server) onIdle() error {
+	brk.config.logger.Println("try to reconnect after", brk.config.reconnectInterval)
+	select {
+	case <-time.After(brk.config.reconnectInterval):
+		brk.onReady()
+	case <-brk.config.ctx.Done():
+		brk.config.logger.Println("reconnect aborted due to context close")
+		return brk.config.ctx.Err()
+	}
+	return nil
+}
+
+// READY - ready to connect, may cause DISCONNECT or CONNECTION_ESTABLISHED state
+func (brk *Server) onReady() {
+	conn, err := brk.dialToFirstReachable()
+	if err != nil {
+		brk.config.logger.Println("failed to connect to broker:", err)
+	} else {
+		brk.onConnectionEstablished(conn)
+		_ = conn.Close()
+		brk.onDisconnected()
+	}
+}
+
+// CONNECTION_ESTABLISHED connection established and ready. May cause CHANNEL_CREATED and CHANNELS_CREATED
+func (brk *Server) onConnectionEstablished(conn *amqp.Connection) {
+	childContext, closer := context.WithCancel(brk.config.ctx)
+	defer closer()
+	wg := sync.WaitGroup{}
+	// create connections as save amount as handlers
+	for _, handler := range brk.handlers {
+		wg.Add(1)
+		go func(handler StateHandler) {
+			defer wg.Done()
+			defer closer() // <-- close all other channels
+			channel, err := brk.createChannel(conn)
+			if err != nil {
+				return
+			}
+			defer channel.Close()
+			brk.onChannelCreated(childContext, channel, handler)
+		}(handler)
+	}
+	brk.onChannelsCreated(childContext)
+	wg.Wait()
+}
+
+// CHANNEL_CREATED channel is ready to process, terminate state
+func (brk *Server) onChannelCreated(ctx context.Context, channel *amqp.Channel, handler StateHandler) {
+	err := handler.ChannelReady(ctx, channel)
+	if err != nil {
+		brk.config.logger.Println("failed handler:", err)
+	}
+}
+
+// CHANNELS_CREATED all channels tried to be initialized, terminate state
+func (brk *Server) onChannelsCreated(ctx context.Context) {
+	// for future development
+}
+
+// DISCONNECTED connection is closed, terminate state
+func (brk *Server) onDisconnected() {
+	// for future development
+}
+
+func (brk *Server) createChannel(conn *amqp.Connection) (*amqp.Channel, error) {
+	ch, err := conn.Channel()
+	if err != nil {
+		stringErr := fmt.Sprintf("%s", err)
+		brk.config.logger.Println("failed open channel:", maskPassword.ReplaceAllString(stringErr, "***@"))
+		return nil, err
+	}
+	err = ch.Qos(1, 0, true)
+	if err != nil {
+		_ = ch.Close()
+		brk.config.logger.Println("failed set QoS:", err)
+		return nil, err
+	}
+	return ch, nil
+}
+
+func (brk *Server) dialToFirstReachable() (*amqp.Connection, error) {
+	for _, url := range brk.config.urls {
 		brk.config.logger.Println("connecting to", maskPassword.ReplaceAllString(url, "***@"))
 		conn, err := amqp.DialConfig(url, amqp.Config{
 			Heartbeat: 10 * time.Second,
@@ -91,67 +174,11 @@ func (brk *Server) serve() error {
 			brk.config.logger.Println("connection error:", maskPassword.ReplaceAllString(stringErr, "***@"))
 		} else {
 			brk.config.logger.Println("successfully connected to", maskPassword.ReplaceAllString(url, "***@"))
-			brk.processConnection(conn)
-			conn.Close()
+			return conn, nil
 		}
-		brk.config.logger.Println("try to reconnect after", brk.config.reconnectInterval)
-		select {
-		case <-time.After(brk.config.reconnectInterval):
-		case <-brk.config.ctx.Done():
-			brk.config.logger.Println("reconnect aborted due to context close")
-			return brk.config.ctx.Err()
+		if brk.config.ctx.Err() != nil {
+			return nil, brk.config.ctx.Err()
 		}
 	}
-}
-
-func (brk *Server) processConnection(conn *amqp.Connection) {
-	childContext, closer := context.WithCancel(brk.config.ctx)
-	wg := sync.WaitGroup{}
-	loaded := brk.loadHandler(conn, childContext, closer, &wg, 0)
-LOOP:
-	for {
-		select {
-		case <-childContext.Done():
-			break LOOP
-		case <-brk.refreshHandlers:
-			// load delta (if exists)
-			loaded += brk.loadHandler(conn, childContext, closer, &wg, loaded)
-		}
-	}
-	wg.Wait()
-}
-
-func (brk *Server) loadHandler(conn *amqp.Connection, childContext context.Context, closer context.CancelFunc, wg *sync.WaitGroup, offset int) int {
-	brk.handlersLock.Lock()
-	var loaded int
-	for _, handler := range brk.handlers[offset:] {
-		wg.Add(1)
-		go func(handler StateHandler) {
-			defer wg.Done()
-			err := brk.runHandler(childContext, conn, handler)
-			if err != nil {
-				brk.config.logger.Println("failed handler:", err)
-			}
-			closer()
-		}(handler)
-		loaded++
-	}
-	brk.handlersLock.Unlock()
-	return loaded
-}
-
-func (brk *Server) runHandler(ctx context.Context, conn *amqp.Connection, handler StateHandler) error {
-	ch, err := conn.Channel()
-	if err != nil {
-		stringErr := fmt.Sprintf("%s", err)
-		brk.config.logger.Println("failed open channel:", maskPassword.ReplaceAllString(stringErr, "***@"))
-		return err
-	}
-	defer ch.Close()
-	err = ch.Qos(1, 0, true)
-	if err != nil {
-		brk.config.logger.Println("failed set QoS:", err)
-		return err
-	}
-	return handler.ChannelReady(ctx, ch)
+	return nil, fmt.Errorf("all urls are unreachable")
 }

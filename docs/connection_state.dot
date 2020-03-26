@@ -1,0 +1,15 @@
+digraph {
+    start->ready;
+    idle->ready[label="waited required time"];
+    ready->idle[label="dial failed"]
+    ready->connection_established[label="dial successful"];
+    connection_established->disconnected;
+    connection_established->channel_created;
+    connection_established->channel_created;
+    connection_established->channel_created;
+    
+    channel_created->channels_created[label="all channels created"];
+    channels_created->disconnected [label="wait till first\nchannel stopped\nand cancel others"];
+    disconnected->idle [label="wait delay"];
+    idle->finished [label="shutdown"];
+}

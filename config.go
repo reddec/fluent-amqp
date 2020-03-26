@@ -97,6 +97,6 @@ func (bc *BrokerConfig) Start() *Server {
 		refreshHandlers: make(chan struct{}, 1),
 		done:            make(chan struct{}),
 	}
-	go brk.serve()
+	go brk.start()
 	return brk
 }
