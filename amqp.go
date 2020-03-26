@@ -103,8 +103,8 @@ func (brk *Server) onConnectionEstablished(conn *amqp.Connection) {
 	childContext, closer := context.WithCancel(brk.config.ctx)
 	defer closer()
 	wg := sync.WaitGroup{}
-	// create connections as save amount as handlers
-	for _, handler := range brk.handlers {
+	// create connections for each handlers (could be added dynamically)
+	for handler := range brk.streamHandlers(childContext) {
 		wg.Add(1)
 		go func(handler StateHandler) {
 			defer wg.Done()
@@ -182,4 +182,30 @@ func (brk *Server) dialToFirstReachable() (*amqp.Connection, error) {
 		}
 	}
 	return nil, fmt.Errorf("all urls are unreachable")
+}
+
+func (brk *Server) streamHandlers(ctx context.Context) <-chan StateHandler {
+	out := make(chan StateHandler)
+	go func() {
+		defer close(out)
+		var num int
+		for {
+			targetNum := len(brk.handlers)
+			for i := num; i < targetNum; i++ {
+				select {
+				case <-ctx.Done():
+					return
+				case out <- brk.handlers[i]:
+				}
+			}
+			num = targetNum
+			select {
+			case <-ctx.Done():
+				return
+			case <-brk.refreshHandlers:
+
+			}
+		}
+	}()
+	return out
 }
