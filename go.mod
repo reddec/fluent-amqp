@@ -12,6 +12,6 @@ require (
 	github.com/imdario/mergo v0.3.6
 	github.com/jessevdk/go-flags v1.4.1-0.20181221193153-c0795c8afcf4
 	github.com/pkg/errors v0.8.0
-	github.com/streadway/amqp v0.0.0-20180806233856-70e15c650864
+	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	golang.org/x/crypto v0.0.0-20180904163835-0709b304e793
 )
