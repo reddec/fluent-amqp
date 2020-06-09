@@ -111,6 +111,7 @@ func (brk *Server) onConnectionEstablished(conn *amqp.Connection) {
 			defer closer() // <-- close all other channels
 			channel, err := brk.createChannel(conn)
 			if err != nil {
+				brk.config.logger.Println("failed create channel:", err)
 				return
 			}
 			defer channel.Close()

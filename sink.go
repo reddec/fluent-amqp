@@ -10,6 +10,7 @@ import (
 
 type SinkHandlerFunc func(ctx context.Context, msg amqp.Delivery)
 type TransactionHandlerFunc func(ctx context.Context, msg amqp.Delivery) error
+type ReadHandlerFunc func() error
 
 // Handler for messages that reached retries amount. False return means request to drop message
 type SinkExpiredHandlerFunc func(ctx context.Context, msg amqp.Delivery, retries int64) bool
@@ -36,6 +37,7 @@ type SinkConfig struct {
 	queueName              string
 	bindings               []*Exchange
 	middleware             []ReceiverHandler
+	ready                  []ReadHandlerFunc
 	broker                 *Server
 	autoAck                bool
 	verboseLogging         bool
@@ -161,6 +163,12 @@ func (snk *SinkConfig) KeepDead() *SinkConfig {
 	return snk.DeadLetter("dead.messages", snk.queueName+"/dead")
 }
 
+// Add handler to catch when channel is ready
+func (snk *SinkConfig) Ready(fn ReadHandlerFunc) *SinkConfig {
+	snk.ready = append(snk.ready, fn)
+	return snk
+}
+
 func (snk *SinkConfig) Attr(name string, value interface{}) *SinkConfig {
 	if snk.attrs == nil {
 		snk.attrs = make(amqp.Table)
@@ -221,16 +229,19 @@ func (snk *SinkConfig) TransactFunc(fn TransactionHandlerFunc) *Server {
 			snk.broker.config.logger.Println(snk.name, "message", msg.MessageId, "failed after", end.Sub(start), ":", err)
 		}
 		if err == nil {
-			msg.Ack(false)
+			err = msg.Ack(false)
 		} else if snk.requeue == nil {
 			// no requeue
-			msg.Nack(false, true)
+			err = msg.Nack(false, true)
 		} else if errReq := snk.requeue.RequeueWithError(&msg, err); errReq == nil {
 			// requeue exists and it's OK
-			msg.Ack(false)
+			err = msg.Ack(false)
 		} else {
 			// requeue exists but failed
-			msg.Nack(false, true)
+			err = msg.Nack(false, true)
+		}
+		if err != nil {
+			snk.broker.config.logger.Println("failed process transact handler:", err)
 		}
 	})
 }
@@ -298,7 +309,7 @@ func (s *sink) ChannelReady(ctx context.Context, ch *amqp.Channel) error {
 	}
 
 	if s.config.deadExchange != "" && s.config.deadQueue != "" {
-		if err := ch.QueueBind(s.config.deadQueue, "", s.config.deadExchange, false, nil); err != nil {
+		if err := ch.QueueBind(s.config.deadQueue, s.config.deadQueue, s.config.deadExchange, false, nil); err != nil {
 			return err
 		}
 	}
@@ -323,11 +334,19 @@ func (s *sink) ChannelReady(ctx context.Context, ch *amqp.Channel) error {
 	if err != nil {
 		return err
 	}
+
+	for _, handler := range s.config.ready {
+		err = handler()
+		if err != nil {
+			return err
+		}
+	}
 LOOP:
 	for {
 		select {
 		case msg, ok := <-stream:
 			if !ok {
+				s.config.broker.config.logger.Println("stream externally closed for", queueName.Name)
 				break LOOP
 			}
 			retries := getRedelivery(&msg)
@@ -349,6 +368,7 @@ LOOP:
 			if !keepMessage {
 				err = msg.Nack(false, false)
 				if err != nil {
+					s.config.broker.config.logger.Println("failed NACK message:", err)
 					return err
 				}
 				continue
