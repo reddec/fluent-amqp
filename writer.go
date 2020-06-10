@@ -114,7 +114,9 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 		if msg.Done != nil {
 			close(msg.Done)
 		}
-		pub.stream.Commit()
+		if msg.Try == nil {
+			pub.stream.Commit()
+		}
 	}
 
 }
