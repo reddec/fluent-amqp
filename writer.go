@@ -106,6 +106,7 @@ func (pub *publisher) ChannelReady(ctx context.Context, ch *amqp.Channel) error 
 		if msg.Try != nil {
 			msg.Try <- err
 			close(msg.Try)
+			pub.stream.Commit() // try-only should be discarded after first attempt
 		}
 		if err != nil {
 			return err
